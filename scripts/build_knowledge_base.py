@@ -80,7 +80,11 @@ KNOWLEDGE_DOCS = [
         metadata={"category": "synonym"}
     ),
     Document(
-        page_content="SEMANTIC SYNONYM: When a user asks who their 'best customers' or 'top spenders' are, group by `customer_id` (and optionally `name`/`email`) and order descending by the SUM of `grand_total`.",
+        page_content="SEMANTIC SYNONYM: When a user asks who their 'best restaurants', 'top merchants', or 'top spenders' are, group by `customer_id` (which actually represents the merchant) and order descending by the SUM of `grand_total`.",
+        metadata={"category": "synonym"}
+    ),
+    Document(
+        page_content="CRITICAL SEMANTIC RULE: In this database structure, the term 'customer' and the column `customer_id` actually refer to a 'Merchant' or 'Restaurant' (the business generating the order), NOT the end diner.",
         metadata={"category": "synonym"}
     ),
     Document(
