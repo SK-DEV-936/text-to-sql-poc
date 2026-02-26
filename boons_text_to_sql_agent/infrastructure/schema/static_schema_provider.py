@@ -12,34 +12,32 @@ class StaticSchemaProvider(SchemaProviderPort):
     def get_schema_manifest(self, scope: Scope) -> Mapping[str, Any]:
         base_schema: Dict[str, Any] = {
             "tables": {
-                "merchants": {
-                    "description": "Merchants / restaurants",
-                    "columns": ["id", "name", "city", "created_at", "status"],
-                },
                 "orders": {
-                    "description": "Orders placed in the system",
-                    "columns": [
-                        "id",
-                        "merchant_id",
-                        "customer_id",
-                        "order_status",
-                        "total_amount",
-                        "created_at",
-                    ],
+                    "description": "Regular food orders placed in the system",
+                    "columns": ["id", "code", "customer_id", "total_menu_price", "grand_total", "order_status", "created_date"]
                 },
-                "order_items": {
-                    "description": "Line items per order",
-                    "columns": ["id", "order_id", "menu_item_id", "quantity", "item_price"],
+                "order_details": {
+                    "description": "Line items for regular food orders",
+                    "columns": ["id", "order_code", "menu_name", "quantity", "restaurant_id", "total"]
                 },
-                "customers": {
-                    "description": "Customers (minimal fields, no PII)",
-                    "columns": ["id", "created_at", "customer_segment"],
+                "catering_orders": {
+                    "description": "Catering food orders placed in the system",
+                    "columns": ["id", "code", "customer_id", "total_menu_price", "grand_total", "order_status", "created_date"]
                 },
+                "catering_order_details": {
+                    "description": "Line items for catering food orders",
+                    "columns": ["id", "order_code", "menu_name", "quantity", "restaurant_id", "total"]
+                },
+                "order_history": {
+                    "description": "Audit trails and lifecycle events of all types of orders.",
+                    "columns": ["id", "order_id", "process_by", "particulars", "time_format", "created_data"]
+                }
             },
             "relationships": [
-                {"from": "orders.merchant_id", "to": "merchants.id"},
-                {"from": "orders.customer_id", "to": "customers.id"},
-                {"from": "order_items.order_id", "to": "orders.id"},
+                {"from": "order_details.order_code", "to": "orders.code"},
+                {"from": "catering_order_details.order_code", "to": "catering_orders.code"},
+                {"from": "order_history.order_id", "to": "orders.code"},
+                {"from": "order_history.order_id", "to": "catering_orders.code"}
             ],
         }
 

@@ -34,16 +34,39 @@ class GenerateAndExecuteQueryService:
             logger.info(f"LLM replied with conversational message: {raw_sql_or_msg}")
             return QueryResult(sql=None, rows=None, summary=raw_sql_or_msg, warnings=None)
             
-        raw_sql = raw_sql_or_msg
-        logger.info(f"LLM Generated SQL: {raw_sql.text}")
+        current_sql = raw_sql_or_msg
         
-        validated_sql = self.sql_validator.validate_and_enforce(question.scope, raw_sql)
-        logger.info(f"Validated/Enforced SQL: {validated_sql.text}")
-        
-        rows = await self.sql_executor.execute(validated_sql)
-        logger.info(f"Query executed successfully. Rows returned: {len(rows)}")
-        
-        summary = await self.result_summarizer.summarize(question, rows)
-
-        return QueryResult(sql=validated_sql, rows=rows, summary=summary, warnings=None)
+        # Self-correction loop: allow one attempt to fix failing SQL
+        max_retries = 1
+        for attempt in range(max_retries + 1):
+            try:
+                logger.info(f"Execution attempt {attempt + 1}: {current_sql.text}")
+                validated_sql = self.sql_validator.validate_and_enforce(question.scope, current_sql)
+                
+                rows = await self.sql_executor.execute(validated_sql)
+                logger.info(f"Query executed successfully. Rows returned: {len(rows)}")
+                
+                summary = await self.result_summarizer.summarize(question, rows)
+                return QueryResult(sql=validated_sql, rows=rows, summary=summary, warnings=None)
+                
+            except Exception as e:
+                error_msg = str(e)
+                logger.warning(f"SQL execution failed (attempt {attempt + 1}): {error_msg}")
+                
+                if attempt < max_retries:
+                    logger.info("Attempting SQL self-correction...")
+                    current_sql = await self.text_to_sql.fix_sql(
+                        question, schema_manifest, current_sql, error_msg
+                    )
+                    # If fix_sql returned a string message instead of SQL
+                    if isinstance(current_sql, str):
+                        return QueryResult(sql=None, rows=None, summary=current_sql, warnings="Fixed failed")
+                else:
+                    logger.error(f"SQL execution failed after {max_retries} retries: {error_msg}")
+                    return QueryResult(
+                        sql=current_sql, 
+                        rows=None, 
+                        summary="I'm sorry, but I was unable to retrieve that information right now. Please try asking in a different way or check back later.",
+                        warnings="Max retries exceeded"
+                    )
 

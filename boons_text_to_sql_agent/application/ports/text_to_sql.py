@@ -12,3 +12,13 @@ class TextToSqlPort(Protocol):
         """Generate a SQL query or conversational reply from a natural-language question."""
         raise NotImplementedError
 
+    async def fix_sql(
+        self,
+        question: Question,
+        schema_manifest: Mapping[str, Any],
+        failing_sql: SqlQuery,
+        error_msg: str,
+    ) -> SqlQuery | str:
+        """Attempt to fix a failing SQL query based on the error message."""
+        raise NotImplementedError
+

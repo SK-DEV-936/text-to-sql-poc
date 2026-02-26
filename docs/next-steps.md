@@ -2,36 +2,22 @@
 
 This file captures **where the POC is today** and a suggested sequence of next steps so a future engineer/agent can continue smoothly.
 
-### Current status (implemented)
-
-- Clean architecture skeleton in place:
-  - Domain models (`Question`, `Scope`, `SqlQuery`, `QueryResult`, `Role`).
-  - Single use case: `GenerateAndExecuteQueryService`.
-  - Ports for schema, text-to-SQL, validation, execution, summarization.
-  - Infrastructure adapters that are **safe stubs** (no real DB or LLM yet).
-  - FastAPI `POST /text-to-sql` endpoint wired end-to-end.
-- POC is runnable entirely locally with:
-
-```bash
-uvicorn boons_text_to_sql_agent.main:app --reload
-```
+- Clean architecture skeleton in place.
+- **Real local MySQL / Docker DB** (High-fidelity RDS simulation):
+  - `MySqlExecutor` (async) is the default.
+  - Dockerized MySQL under `db/` with 5,000+ seed records.
+  - Environment-aware config (`local`, `aws-dev`, `aws-prod`).
+- FastAPI `POST /text-to-sql` endpoint wired end-to-end.
+- POC is runnable locally via `./run_demo.sh`.
 
 ### Short-term next steps (minimal POC to “real” agent)
 
-1. **Wire a real local MySQL / Docker DB**
-   - Status: **largely done**.
-   - Code and assets now include:
-     - `MySqlExecutor` (async executor using a read-only MySQL user) in `infrastructure/db/mysql_executor.py`.
-     - `main.py` can switch between `InMemoryDemoExecutor` (default) and `MySqlExecutor` using the `USE_IN_MEMORY_EXECUTOR` env var.
-     - `config.py` exposes `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`.
-     - A Dockerized MySQL setup under `db/`:
-       - `db/docker-compose.yml`
-       - `db/init/01-schema.sql` (DDL for `merchants`, `orders`, `order_items`, `customers` + read-only user).
-       - `db/init/02-seed.sql` (simple synthetic seed data).
-   - Still TODO:
-     - Confirm parameter binding patterns once LLM output and validator behavior are finalized.
-
-2. **Implement real LLM-based Text-to-SQL**
+1. **Implement real LLM-based Text-to-SQL**
+   - Replace the placeholder in `LangChainTextToSqlAdapter` with:
+     - A proper prompt (system rules + schema manifest).
+     - Few-shot examples from the PDF spec.
+   - Use environment variables for API key and model.
+   - Keep all LLM calls behind the `TextToSqlPort` interface.
    - Replace the placeholder in `LangChainTextToSqlAdapter` with:
      - A proper prompt (system rules + schema manifest).
      - Few-shot examples from the PDF spec.

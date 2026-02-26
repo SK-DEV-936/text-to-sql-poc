@@ -40,16 +40,8 @@ for message in st.session_state.messages:
                     if "summary" in message and message["summary"]:
                         st.markdown(message["summary"])
                 else:
-                    st.markdown("**Action:** Generated SQL Query")
-                    st.code(message.get("final_sql", ""), language="sql")
                     if "summary" in message and message["summary"]:
-                        st.markdown(f"**Summary:** {message['summary']}")
-                    if "rows" in message:
-                        st.markdown("**Results:**")
-                        st.dataframe(message["rows"])
-                    if "warnings" in message and message["warnings"]:
-                        for w in message["warnings"]:
-                            st.warning(w)
+                        st.markdown(message['summary'])
 
 def parse_merchant_ids(ids_str):
     if not ids_str.strip():
@@ -99,19 +91,9 @@ if question:
                             "rows": None
                         })
                     else:
-                        st.markdown("**Action:** Generated SQL Query")
-                        st.code(data["final_sql"], language="sql")
-                        
                         if data.get("summary"):
-                            st.markdown(f"**Summary:** {data['summary']}")
+                            st.markdown(data['summary'])
                             
-                        st.markdown("**Results:**")
-                        st.dataframe(data["rows"])
-                        
-                        if data.get("warnings"):
-                            for w in data["warnings"]:
-                                st.warning(w)
-                                
                         # Add to history
                         st.session_state.messages.append({
                             "role": "assistant",

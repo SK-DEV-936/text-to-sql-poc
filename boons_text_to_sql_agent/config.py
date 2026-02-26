@@ -10,6 +10,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class PromptSettings(BaseModel):
     base_system_prompt: str
+    summarization_prompt: str = ""
+    fix_sql_prompt: str = ""
+    few_shot_examples: str = ""
     role_contexts: Dict[str, str]
 
 
@@ -34,7 +37,7 @@ class Settings(BaseSettings):
     db_user: str = "boons_readonly"
     db_password: str = "change-me"
     db_name: str = "boons"
-    use_in_memory_executor: bool = True
+    use_in_memory_executor: bool = False
 
     # LLM Settings (OpenAI for local, Bedrock for AWS)
     llm_api_key: str = Field(default="", alias="OPENAI_API_KEY")

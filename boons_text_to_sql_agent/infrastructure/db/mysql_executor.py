@@ -144,7 +144,6 @@ class MySqlExecutor(SqlExecutorPort):
             db=self.db_name,
             autocommit=True,
             connect_timeout=self.connect_timeout,
-            read_timeout=self.read_timeout,
             cursorclass=aiomysql.DictCursor,
         )
         try:

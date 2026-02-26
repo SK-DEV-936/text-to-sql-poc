@@ -55,13 +55,13 @@ def test_merchant_rls_wrapper_applied(validator: SimpleSqlValidator, merchant_sc
     
     text = result.text.lower()
     assert "select * from (select id, name from orders) as _rls_wrapper" in text
-    assert "where merchant_id in" in text
+    assert "where restaurant_id in" in text
     assert "limit 50" in text
 
     # Parameters should be preserved and updated
     assert result.parameters["existing"] == "param"
-    assert result.parameters["rls_merchant_id_0"] == 1
-    assert result.parameters["rls_merchant_id_1"] == 2
+    assert result.parameters["rls_restaurant_id_0"] == 1
+    assert result.parameters["rls_restaurant_id_1"] == 2
 
 
 def test_merchant_fails_without_ids(validator: SimpleSqlValidator) -> None:

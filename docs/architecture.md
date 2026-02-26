@@ -28,22 +28,17 @@ This POC follows a **Clean / Hexagonal Architecture** for a local-first, AWS-com
 
 - **Infrastructure (`infrastructure/`)**
   - **Schema**
-    - `StaticSchemaProvider`: hardcoded subset of tables (`merchants`, `orders`, `order_items`, `customers`) and relationships.
+    - `StaticSchemaProvider`: hardcoded subset of tables (`orders`, `order_details`, `catering_orders`, `catering_order_details`, `order_history`) and relationships.
   - **LLM**
-    - `LangChainTextToSqlAdapter`: currently a **placeholder** that always returns a safe demo `SELECT ... FROM merchants LIMIT 10`. Will be replaced with a real LangChain + LLM implementation.
-    - `NoopSummarizer`: returns no summary; stub for future LLM summarization.
+    - `LangChainTextToSqlAdapter`: A real LangChain + LLM implementation that generates MySQL queries based on the schema and few-shot examples.
+    - `LlmSummarizer`: Uses an LLM to generate natural language summaries of the data results.
   - **DB**
-    - `InMemoryDemoExecutor`: returns fake merchant rows instead of talking to a real MySQL instance. Will later be replaced with an async MySQL executor using the real schema.
-  - **Security / guardrails**
-    - `SimpleSqlValidator`:
-      - Enforces **SELECT-only**.
-      - Rejects obviously dangerous tokens (INSERT/UPDATE/DELETE/DROP/ALTER/TRUNCATE, `;`).
-      - Ensures a `LIMIT` exists and clamps it to `scope.max_rows`.
-      - Does **not yet** enforce row-level `merchant_id` predicates (RLS) – that’s a planned enhancement.
+    - `MySqlExecutor`: The primary executor, used for both local development (via Docker) and AWS RDS. It utilizes asynchronous `aiomysql`.
+    - `InMemoryDemoExecutor`: A legacy/fallback SQLite executor for no-DB local runs. No longer the default path.
 
 - **Interface / delivery (`interface/api/`)**
   - `routes.py`:
-    - FastAPI router with `POST /text-to-sql`.
+    - FastAPI router with `POST /text-to-sql/`.
     - Request: `role`, `merchant_ids`, `question`.
     - Response: `final_sql`, `rows`, optional `summary`, `warnings`.
     - Converts HTTP JSON ↔ domain models and calls `GenerateAndExecuteQueryService`.
@@ -53,12 +48,10 @@ This POC follows a **Clean / Hexagonal Architecture** for a local-first, AWS-com
   - Loads settings from environment via `load_settings()`.
   - Instantiates:
     - `StaticSchemaProvider`
-    - `LangChainTextToSqlAdapter` (placeholder)
+    - `LangChainTextToSqlAdapter`
     - `SimpleSqlValidator`
-    - Either:
-      - `InMemoryDemoExecutor` (default, for no-DB local runs), or
-      - `MySqlExecutor` (when `USE_IN_MEMORY_EXECUTOR=false`) using a read-only MySQL user.
-    - `NoopSummarizer`
+    - `MySqlExecutor` (default, points to Docker locally or RDS in AWS).
+    - `LlmSummarizer`
   - Wires them into `GenerateAndExecuteQueryService` and mounts the `POST /text-to-sql` router.
 
 ### Current behavior (POC)
@@ -66,14 +59,14 @@ This POC follows a **Clean / Hexagonal Architecture** for a local-first, AWS-com
 - The service is fully wired and can be started via:
 
 ```bash
-uvicorn boons_text_to_sql_agent.main:app --reload
+./run_demo.sh
 ```
 
-- When calling `POST /text-to-sql`:
-  - The LLM adapter returns a fixed `SELECT ... FROM merchants LIMIT 10`.
-  - The validator enforces safety and limit.
-  - The executor returns in-memory demo merchant rows.
-  - The summarizer returns no summary.
+- When calling `POST /text-to-sql/`:
+  - The LLM adapter generates a relevant MySQL query (e.g., `SELECT COUNT(*) FROM orders`).
+  - The validator enforces safety, Row-Level Security (for merchants), and a 1000-row limit.
+  - The executor returns real data from the local MySQL Docker instance.
+  - The summarizer provides a human-friendly text response.
 
-This keeps the POC **runnable without any external dependencies** (no DB, no LLM) while preserving the clean architecture boundaries for later extension.
+This ensures the POC provides a **high-fidelity simulation** of the final production environment.
 

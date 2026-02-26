@@ -26,8 +26,8 @@ trap cleanup SIGINT SIGTERM EXIT
 
 ROOT_DIR=$(pwd)
 
-# Export env variables to ensure we use in-memory SQLite instead of Docker MySQL
-export USE_IN_MEMORY_EXECUTOR=true
+# Let the application pick the executor based on .env or defaults
+# export USE_IN_MEMORY_EXECUTOR=true
 
 # Start the FastAPI backend in the background
 echo "Starting FastAPI backend on port 8000..."

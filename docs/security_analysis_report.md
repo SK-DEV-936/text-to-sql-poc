@@ -21,10 +21,10 @@ This document explores the structural vulnerabilities discovered during a deep-d
 - **Impact**: Regex is notoriously poor at parsing SQL. A determined attacker could potentially use SQL comment injection or obscure syntax to trick the regex while still executing a malicious query (e.g., `SELECT /* INSERT */ 1`).
 - **Remediation**: Replace string regex with an Abstract Syntax Tree (AST) SQL parser like `sqlglot` to structurally verify the query intent.
 
-### B. `merchant_id` Ambiguity & Shadowing
-- **Vulnerability**: The RLS wrapper enforces security via: `SELECT * FROM ({text}) AS _rls_wrapper WHERE merchant_id IN (...)`. 
-- **Impact**: If the internal `{text}` query contains a self-join or pulls from multiple tables, multiple columns could be named `merchant_id`, causing an ambiguous column alias error `Column 'merchant_id' in where clause is ambiguous` and returning a 500 error instead of failing securely at the validation layer. Conversely, an attacker could artificially alias a harmless constant mathematically to `AS merchant_id` to bypass the wrapper.
-- **Remediation**: The validator should statically analyze the AST of the generated SQL to guarantee exactly one unambiguous `merchant_id` output column exists before wrapping.
+### B. `restaurant_id` Ambiguity & Shadowing
+- **Vulnerability**: The RLS wrapper enforces security via: `SELECT * FROM ({text}) AS _rls_wrapper WHERE restaurant_id IN (...)`. 
+- **Impact**: If the internal `{text}` query contains a self-join or pulls from multiple tables, multiple columns could be named `restaurant_id`, causing an ambiguous column alias error `Column 'restaurant_id' in where clause is ambiguous` and returning a 500 error instead of failing securely at the validation layer. Conversely, an attacker could artificially alias a harmless constant mathematically to `AS restaurant_id` to bypass the wrapper.
+- **Remediation**: The validator should statically analyze the AST of the generated SQL to guarantee exactly one unambiguous `restaurant_id` output column exists before wrapping.
 
 ### C. `limit` Parsing Vulnerability
 - **Vulnerability**: For `INTERNAL` roles, the validator manually alters the query string to append or rewrite the `LIMIT` clause using a regex: `re.sub(r"(limit\s+)(\d+)", ...)`.

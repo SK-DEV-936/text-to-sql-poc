@@ -1,18 +1,17 @@
-from __future__ import annotations
-
-import re
+import sqlglot
+from sqlglot import exp, parse_one
 
 from boons_text_to_sql_agent.application.ports import SqlValidatorPort
 from boons_text_to_sql_agent.config import Settings
-from boons_text_to_sql_agent.domain import Scope, SqlQuery
+from boons_text_to_sql_agent.domain import Role, Scope, SqlQuery
 
 
 class SimpleSqlValidator(SqlValidatorPort):
-    """Very minimal SQL validator/rewriter for the POC.
+    """AST-based SQL validator/rewriter using sqlglot.
 
     - Enforces single-statement SELECT-only.
-    - Ensures a LIMIT exists and is <= scope.max_rows (adds or clamps).
-    - Does NOT yet parse full SQL or enforce merchant_id filters.
+    - Ensures a LIMIT exists and is <= scope.max_rows.
+    - Injects Row-Level Security (RLS) filters for merchant roles.
     """
 
     def __init__(self, settings: Settings):
@@ -20,66 +19,62 @@ class SimpleSqlValidator(SqlValidatorPort):
         guardrails = settings.guardrails
         if not guardrails:
             raise RuntimeError("Guardrails configuration is missing.")
-            
-        patterns = "|".join(guardrails.dangerous_regex_patterns)
-        self._dangerous_pattern = re.compile(f"({patterns})", flags=re.IGNORECASE)
         self._blocked_tables = guardrails.blocked_tables
 
     def validate_and_enforce(self, scope: Scope, sql_query: SqlQuery) -> SqlQuery:
-        # Remove trailing whitespace and semicolon
-        text = sql_query.text.strip().rstrip(";")
+        try:
+            # Parse the SQL into an AST
+            expression = parse_one(sql_query.text, read="mysql")
+        except Exception as e:
+            raise ValueError(f"Invalid SQL syntax: {str(e)}")
 
-        if not text.lower().startswith("select"):
+        # 1. Enforce SELECT/Query only
+        if not isinstance(expression, (exp.Select, exp.Union, exp.Intersect, exp.Except)):
             raise ValueError("Only SELECT statements are allowed.")
 
-        if self._dangerous_pattern.search(text):
-            raise ValueError("Dangerous SQL pattern detected.")
-            
-        lower_text = text.lower()
-        for table in self._blocked_tables:
-            # Basic check for table name mention
-            if re.search(rf"\b{table}\b", lower_text):
-                raise ValueError(f"Access to blocked table '{table}' is forbidden.")
+        # 2. Block forbidden tables
+        for table in expression.find_all(exp.Table):
+            table_name = table.name.lower()
+            if table_name in self._blocked_tables:
+                raise ValueError(f"Access to blocked table '{table_name}' is forbidden.")
 
         parameters = dict(sql_query.parameters)
 
-        # Basic RLS enforcement using an outer wrapper query
-        # This assumes the inner query returns a `merchant_id` column if it's merchant scoped.
-        from boons_text_to_sql_agent.domain import Role
-        
+        # 3. Handle Merchant RLS
         if scope.role == Role.MERCHANT:
             if not scope.merchant_ids:
                 raise ValueError("Merchant role requires at least one merchant_id in scope.")
-            
+
             # Create parameterized placeholders
             placeholders = []
             for i, m_id in enumerate(scope.merchant_ids):
-                param_key = f"rls_merchant_id_{i}"
-                placeholders.append(f"%({param_key})s")
+                param_key = f"rls_restaurant_id_{i}"
+                placeholders.append(exp.Placeholder(this=param_key))
                 parameters[param_key] = m_id
-            
-            in_clause = ", ".join(placeholders)
-            
-            # Wrap the entire query to easily enforce both RLS and LIMIT
-            # without complex AST parsing.
-            text = (
-                f"SELECT * FROM ({text}) AS _rls_wrapper "
-                f"WHERE merchant_id IN ({in_clause}) "
-                f"LIMIT {scope.max_rows}"
+
+            # Inject RLS into a subquery wrapper to ensure correctness across joins
+            # SELECT * FROM (original_query) AS _rls_wrapper WHERE restaurant_id IN (...)
+            expression = (
+                sqlglot.select("*")
+                .from_(expression.subquery("_rls_wrapper"))
+                .where(exp.In(this=exp.column("restaurant_id"), expressions=placeholders))
             )
+
+        # 4. Enforce LIMIT
+        limit_clause = expression.find(exp.Limit)
+        if limit_clause:
+            current_limit = int(limit_clause.expression.this)
+            new_limit = min(current_limit, scope.max_rows)
+            limit_clause.set("expression", exp.Literal.number(new_limit))
         else:
-            # For internal roles, just enforce the limit
-            lower = text.lower()
-            if " limit " not in lower:
-                text = f"{text} LIMIT {scope.max_rows}"
-            else:
-                def _replace_limit(match: re.Match) -> str:
-                    prefix = match.group(1)
-                    current_limit = int(match.group(2))
-                    new_limit = min(current_limit, scope.max_rows)
-                    return f"{prefix}{new_limit}"
+            expression = expression.limit(scope.max_rows)
 
-                text = re.sub(r"(limit\s+)(\d+)", _replace_limit, text, flags=re.IGNORECASE)
+        sql_text = expression.sql(dialect="mysql")
 
-        return SqlQuery(text=text, parameters=parameters)
+        # 5. Fix placeholders for aiomysql (convert :param to %(param)s)
+        # We only target the RLS placeholders we injected to stay safe.
+        import re
+        sql_text = re.sub(r":rls_restaurant_id_(\d+)", r"%(rls_restaurant_id_\1)s", sql_text)
+
+        return SqlQuery(text=sql_text, parameters=parameters)
 

@@ -13,7 +13,7 @@ from boons_text_to_sql_agent.infrastructure.db.mysql_executor import (
 from boons_text_to_sql_agent.infrastructure.llm.langchain_text_to_sql import (
     LangChainTextToSqlAdapter,
 )
-from boons_text_to_sql_agent.infrastructure.llm.summarizer import NoopSummarizer
+from boons_text_to_sql_agent.infrastructure.llm.summarizer import LlmSummarizer, NoopSummarizer
 from boons_text_to_sql_agent.infrastructure.schema.static_schema_provider import (
     StaticSchemaProvider,
 )
@@ -49,7 +49,7 @@ def create_app() -> FastAPI:
             password=settings.db_password,
             db_name=settings.db_name,
         )
-    summarizer = NoopSummarizer()
+    summarizer = LlmSummarizer(settings=settings)
 
     # Application service
     service = GenerateAndExecuteQueryService(

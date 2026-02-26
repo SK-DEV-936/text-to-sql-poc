@@ -23,7 +23,7 @@ The AI dynamically adjusting its context based on the user interacting with the 
 Beyond instructing the AI, the system enforces hard security constraints on the final SQL before execution. If a query violates a guardrail, it is rejected immediately.
 
 ### Row-Level Security (RLS)
-- **Mathematical Scoping:** When a Merchant submits a query, the system mathematically scopes the final SQL string by wrapping it in an outer constraint. Even if the AI hallucinated a query fetching data for "Merchant 123" when the user is "Merchant 45", the system intercepts it and forcefully overrides the filter to strictly enforce `WHERE merchant_id IN (45)`.
+- **Mathematical Scoping:** When a Merchant submits a query, the system mathematically scopes the final SQL string by wrapping it in an outer constraint. Even if the AI hallucinated a query fetching data for "Restaurant 123" when the user is "Restaurant 45", the system intercepts it and forcefully overrides the filter to strictly enforce `WHERE restaurant_id IN (45)`.
 - **Limit Enforcement:** All queries are automatically clamped to a maximum row limit to prevent database overload (default: 1000 rows).
 
 ### Regex Blocklists
