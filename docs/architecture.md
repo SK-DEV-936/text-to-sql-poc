@@ -58,6 +58,10 @@ graph TD
         Service["GenerateAndExecuteQueryService"]
     end
     
+    subgraph "Conversational Payload"
+        Payload["chat_history & RLS Context"]
+    end
+    
     subgraph "Knowledge & Generation Context"
         Schema["StaticSchemaProvider (Tables/Columns)"]
         VectorDB[("FAISS / Bedrock Vector DB")]
@@ -79,8 +83,9 @@ graph TD
 
     %% Flow
     User -- "1. Asks Question" --> UI
-    UI -- "2. HTTP Request" --> API
-    API --> Service
+    UI -- "2. HTTP Request + chat_history" --> API
+    API --> Payload
+    Payload --> Service
     
     Service -- "3a. Fetch Structure" --> Schema
     Service -- "3b. Semantic Search" --> VectorDB
@@ -102,12 +107,15 @@ graph TD
     %% Success Path
     Executor -- "7b. Success (Data Rows)" --> Service
     
-    Service -- "8. Summarize Results" --> Summarizer
-    Summarizer -- "Business English" --> Service
+    Service -- "8a. Summarize Results & Chart Spec" --> Summarizer
+    Summarizer -- "Draft Summary + Vega-Lite JSON" --> Service
     
-    Service -- "9. JSON Response" --> API
+    Service -- "8b. QA Compliance Review" --> Watcher[{"LLM: Watcher Agent"}]
+    Watcher -- "Approved or Corrected Text" --> Service
+    
+    Service -- "9. JSON Response (Summary + Chart)" --> API
     API --> UI
-    UI -- "10. Polite Answer" --> User
+    UI -- "10. Polite Answer + Visuals" --> User
 
     %% Styling
     classDef llm fill:#f9d0c4,stroke:#333,stroke-width:2px;
@@ -123,7 +131,7 @@ graph TD
 
 ### Step-by-Step Component Breakdown
 
-1. **Input (Streamlit -> FastAPI)**: The user types a question (e.g., *"How many dinner orders did I have yesterday?"*). The Streamlit UI sends this text, along with the user's role (`merchant`) and authentication ID (`restaurant_id=5`), to the FastAPI backend.
+1. **Input (Streamlit -> FastAPI)**: The user types a question (e.g., *"How many dinner orders did I have yesterday?"*). The Streamlit UI sends this text, along with the user's role (`merchant`), authentication ID (`restaurant_id=5`), and their **`chat_history`**, to the FastAPI backend.
 2. **Orchestration (`GenerateAndExecuteQueryService`)**: The main service receives the request and coordinates the entire pipeline.
 3. **Context Retrieval (RAG)**:
    - **Schema**: The service pulls the static table structures and valid relationships.
@@ -139,8 +147,14 @@ graph TD
    - If MySQL throws an error (e.g., "Unknown column"), the Service catches it. 
    - It sends the broken SQL and the exact error to a secondary **SQL Fixer** LLM to correct the mistake. It retries this up to 2 times automatically.
    - If successful, MySQL returns the aggregated data rows.
-8. **Summarization (`LlmSummarizer`)**: The raw data rows (e.g., `[{"COUNT(*)": 82}]`) are passed to a final LLM. The prompt instructs the summarizer to speak to a merchant politely. 
-9. **Final Output**: The pipeline completes, sending the conversational sentence *"Your restaurant had 82 dinner orders yesterday."* back to the user's chat screen.
+8. **Result Summarization & Visualization (`LlmSummarizer`)**:
+   - The aggregated raw data rows are fed into the Summarizer LLM.
+   - It drafts a highly professional, natural language summary of the data matching the user's role (e.g. "You had 23 dinner orders yesterday").
+   - **Dynamic Data Visualization**: If the LLM detects a trend, ranking, or comparison (e.g. "top 5 items" or "monthly growth"), it intercepts the raw rows and natively generates a **Vega-Lite JSON chart specification**.
+9. **QA & Compliance (`LlmWatcherAgent`)**: 
+   - A distinct "Watcher" LLM agent audits the draft summary for factual accuracy against the raw JSON. 
+   - It enforces Zero Tech Jargon (no mention of SQL, rows, or tables) and verifies tone and social safety. If the draft fails, the Watcher intercepts and corrects it.
+10. **Output (FastAPI -> Streamlit -> User)**: The approved conversational summary, row data, and optional `chart_spec` are returned to the user, where the UI renders them as chat text and interactive native charts.
 
 ---
 

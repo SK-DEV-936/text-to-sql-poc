@@ -1,63 +1,42 @@
-## Next steps and project status
+## Next Steps & Project Status (V2 Completed)
 
-This file captures **where the POC is today** and a suggested sequence of next steps so a future engineer/agent can continue smoothly.
+This file captures **where the POC is today** and a suggested sequence of next steps so a future engineer or AI agent can continue seamlessly into V3.
 
-- Clean architecture skeleton in place.
-- **Real local MySQL / Docker DB** (High-fidelity RDS simulation):
-  - `MySqlExecutor` (async) is the default.
-  - Dockerized MySQL under `db/` with 5,000+ seed records.
-  - Environment-aware config (`local`, `aws-dev`, `aws-prod`).
-- FastAPI `POST /text-to-sql` endpoint wired end-to-end.
-- POC is runnable locally via `./run_demo.sh`.
+### What works today (V1 & V2 Features)
 
-### Short-term next steps (minimal POC to “real” agent)
+1. **Production-Ready DB Simulation**: Local MySQL Docker DB with 5000+ seed records spanning regular and catering orders.
+2. **Text-to-SQL Pipeline**: End-to-end `POST /text-to-sql` endpoint utilizing LangChain (OpenAI locally, AWS Bedrock compatible).
+3. **Firm Security (sqlglot)**: Strict AST parsing guarantees SELECT-only read-only queries and automatically injects Row-Level Security (`merchant_id IN (...)`).
+4. **Self-Correction & Fallbacks**: The LLM will catch its own SQL faults and attempt to fix them up to 2 times.
+5. **Conversational Memory**: The agent accepts `chat_history` via the Streamlit UI, allowing it to remember follow-up questions and conversational contexts over multi-turn interactions.
+6. **Data Visualization**: The `LlmSummarizer` detects aggregation queries and generates valid `Vega-Lite` JSON specifications, which the Streamlit UI natively renders as interactive charts.
+7. **Compliance & QA**: A secondary `LlmWatcherAgent` audits the draft summaries to guarantee zero tech-jargon leaks, professional tone, and factual precision against the raw JSON payload.
 
-1. **Implement real LLM-based Text-to-SQL**
-   - Replace the placeholder in `LangChainTextToSqlAdapter` with:
-     - A proper prompt (system rules + schema manifest).
-     - Few-shot examples from the PDF spec.
-   - Use environment variables for API key and model.
-   - Keep all LLM calls behind the `TextToSqlPort` interface.
-   - Replace the placeholder in `LangChainTextToSqlAdapter` with:
-     - A proper prompt (system rules + schema manifest).
-     - Few-shot examples from the PDF spec.
-   - Use environment variables for API key and model.
-   - Keep all LLM calls behind the `TextToSqlPort` interface.
+---
 
-3. **Strengthen SQL validation & RLS**
-   - Extend `SimpleSqlValidator` to:
-     - Enforce `merchant_id IN (:merchant_ids)` for merchant-scoped tables.
-     - Optionally wrap queries in an outer `SELECT` to inject predicates and LIMIT.
-   - Add unit tests for:
-     - Allowed vs disallowed patterns.
-     - Correct limit clamping.
-     - Correct behavior when scope is missing (reject vs rewrite).
+### V3 Roadmap: Proactive Insights & Scalability
 
-4. **Basic logging & observability**
-   - Add a small logging module (or use Python `logging`) to record:
-     - Role & scope (non-sensitive).
-     - Question text.
-     - LLM-generated SQL.
-     - Final executed SQL.
-     - Row count and errors.
+Now that the reactive chat agent is fully featured, the next step is shifting from a **pull** model to a **push** model.
 
-### Medium-term enhancements (toward the PDF spec)
+#### 1. Proactive Notification Agent
+- **Description**: An agent that runs on a `--cron` schedule (e.g., daily at 8 AM).
+- **Goal**: It should automatically query the database for anomalies or daily rollups (e.g., "You had 15 cancelled orders yesterday, which is 200% higher than average.") and push a notification or email to the Merchant.
+- **Implementation strategy**: 
+  - Create a new CLI entrypoint (`proactive_job.py`).
+  - Reuse `GenerateAndExecuteQueryService` by passing system-generated `Question` objects.
+  - Integrate a basic mocked Email/Webhook Port.
 
-- Support:
-  - Role `internal` with broader access (still read-only).
-  - Additional views (e.g. `merchant_orders_view`) to simplify prompts.
-- Add:
-  - LLM-based summarizer implementation.
-  - More detailed error handling and user-facing messages in the API.
-- Prepare:
-  - Config structure that can flip from local DB to AWS RDS using env vars only.
+#### 2. Advanced Caching Layer
+- **Description**: Currently, the DB is hit on every request.
+- **Goal**: Implement a Semantic Caching layer (like Redis or local in-memory dict) that hashes the incoming question intent and returns the previous SQL and Summary if the data hasn't changed.
+
+#### 3. AWS RDS & Bedrock Migration
+- **Description**: The code is heavily abstracted, but currently defaults to `local`.
+- **Goal**: Provision the actual AWS RDS read replicas and hook the application up to AWS Bedrock using the existing `.is_aws_environment` conditional logic. 
+- **Requirement**: Update CI/CD pipelines to CodeCommit.
 
 ### How a future agent should continue
-
-1. Read:
-   - `README.md` at project root.
-   - `docs/architecture.md` (this gives the mental model).
-   - This `docs/next-steps.md` file.
-2. Decide which of the **short-term next steps** to implement first (recommended order: DB → validator → LLM → logging).
-3. Keep changes behind the existing ports/interfaces to preserve the clean architecture boundaries.
-
+1. Read `README.md` at project root.
+2. Study `docs/architecture.md` to understand the Multi-Agent flow (Text-to-SQL -> Summarizer -> Watcher).
+3. Review `demo_chat.py` to see how the frontend handles state and charts.
+4. Begin implementing **V3 Roadmap Item #1** (Proactive Notification Agent).
