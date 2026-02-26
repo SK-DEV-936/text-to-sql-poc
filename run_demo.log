@@ -47,3 +47,66 @@ WHERE created_at >= NOW() - INTERVAL 1 WEEK
 GROUP BY merchant_id) AS _rls_wrapper WHERE merchant_id IN (%(rls_merchant_id_0)s, %(rls_merchant_id_1)s) LIMIT 1000
 2026-02-26 09:26:39,725 - boons_text_to_sql_agent.application.services - INFO - Query executed successfully. Rows returned: 0
 INFO:     127.0.0.1:60872 - "POST /text-to-sql/ HTTP/1.1" 200 OK
+2026-02-26 09:29:11,914 - boons_text_to_sql_agent.interface.api.routes - INFO - API Request to /text-to-sql - User Role: internal
+2026-02-26 09:29:11,915 - boons_text_to_sql_agent.application.services - INFO - Received question: 'give me total orders we have processes' for role 'internal'
+2026-02-26 09:29:13,102 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+/Users/sanjivankumar/boons-work/ai-agent-text-to-sql/boons-text-to-sql-agent/venv/lib/python3.13/site-packages/pydantic/main.py:464: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_SqlResponse(is_sql=True,... orders;', message=None), input_type=_SqlResponse])
+  return self.__pydantic_serializer__.to_python(
+2026-02-26 09:29:13,118 - boons_text_to_sql_agent.application.services - INFO - LLM Generated SQL: SELECT COUNT(*) AS total_orders FROM orders;
+2026-02-26 09:29:13,119 - boons_text_to_sql_agent.application.services - INFO - Validated/Enforced SQL: SELECT COUNT(*) AS total_orders FROM orders LIMIT 1000
+2026-02-26 09:29:13,119 - boons_text_to_sql_agent.application.services - INFO - Query executed successfully. Rows returned: 1
+INFO:     127.0.0.1:60945 - "POST /text-to-sql/ HTTP/1.1" 200 OK
+2026-02-26 09:29:54,697 - boons_text_to_sql_agent.interface.api.routes - INFO - API Request to /text-to-sql - User Role: internal
+2026-02-26 09:29:54,697 - boons_text_to_sql_agent.application.services - INFO - Received question: 'give output as well formatted md out put. no need to show queries' for role 'internal'
+2026-02-26 09:29:57,304 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+/Users/sanjivankumar/boons-work/ai-agent-text-to-sql/boons-text-to-sql-agent/venv/lib/python3.13/site-packages/pydantic/main.py:464: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_SqlResponse(is_sql=True,...ue DESC;', message=None), input_type=_SqlResponse])
+  return self.__pydantic_serializer__.to_python(
+2026-02-26 09:29:57,320 - boons_text_to_sql_agent.application.services - INFO - LLM Generated SQL: SELECT m.id, m.name, m.city, m.created_at, m.status, COUNT(o.id) AS total_orders, SUM(o.total_amount) AS total_revenue
+FROM merchants m
+LEFT JOIN orders o ON m.id = o.merchant_id
+GROUP BY m.id, m.name, m.city, m.created_at, m.status
+ORDER BY total_revenue DESC;
+2026-02-26 09:29:57,320 - boons_text_to_sql_agent.application.services - INFO - Validated/Enforced SQL: SELECT m.id, m.name, m.city, m.created_at, m.status, COUNT(o.id) AS total_orders, SUM(o.total_amount) AS total_revenue
+FROM merchants m
+LEFT JOIN orders o ON m.id = o.merchant_id
+GROUP BY m.id, m.name, m.city, m.created_at, m.status
+ORDER BY total_revenue DESC LIMIT 1000
+2026-02-26 09:29:57,321 - boons_text_to_sql_agent.application.services - INFO - Query executed successfully. Rows returned: 3
+INFO:     127.0.0.1:60956 - "POST /text-to-sql/ HTTP/1.1" 200 OK
+2026-02-26 09:30:32,497 - boons_text_to_sql_agent.interface.api.routes - INFO - API Request to /text-to-sql - User Role: internal
+2026-02-26 09:30:32,497 - boons_text_to_sql_agent.application.services - INFO - Received question: 'show order deatils' for role 'internal'
+2026-02-26 09:30:35,135 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+/Users/sanjivankumar/boons-work/ai-agent-text-to-sql/boons-text-to-sql-agent/venv/lib/python3.13/site-packages/pydantic/main.py:464: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_SqlResponse(is_sql=True,...rder_id;', message=None), input_type=_SqlResponse])
+  return self.__pydantic_serializer__.to_python(
+2026-02-26 09:30:35,149 - boons_text_to_sql_agent.application.services - INFO - LLM Generated SQL: SELECT o.id AS order_id, o.merchant_id, o.customer_id, o.order_status, o.total_amount, o.created_at AS order_created_at, oi.id AS order_item_id, oi.menu_item_id, oi.quantity, oi.item_price
+FROM orders o
+JOIN order_items oi ON o.id = oi.order_id;
+2026-02-26 09:30:35,150 - boons_text_to_sql_agent.application.services - INFO - Validated/Enforced SQL: SELECT o.id AS order_id, o.merchant_id, o.customer_id, o.order_status, o.total_amount, o.created_at AS order_created_at, oi.id AS order_item_id, oi.menu_item_id, oi.quantity, oi.item_price
+FROM orders o
+JOIN order_items oi ON o.id = oi.order_id LIMIT 1000
+2026-02-26 09:30:35,150 - boons_text_to_sql_agent.application.services - INFO - Query executed successfully. Rows returned: 6
+INFO:     127.0.0.1:60970 - "POST /text-to-sql/ HTTP/1.1" 200 OK
+2026-02-26 09:30:49,909 - boons_text_to_sql_agent.interface.api.routes - INFO - API Request to /text-to-sql - User Role: internal
+2026-02-26 09:30:49,909 - boons_text_to_sql_agent.application.services - INFO - Received question: 'show only cancelled orders' for role 'internal'
+2026-02-26 09:30:51,418 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+/Users/sanjivankumar/boons-work/ai-agent-text-to-sql/boons-text-to-sql-agent/venv/lib/python3.13/site-packages/pydantic/main.py:464: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_SqlResponse(is_sql=True,...celled';", message=None), input_type=_SqlResponse])
+  return self.__pydantic_serializer__.to_python(
+2026-02-26 09:30:51,430 - boons_text_to_sql_agent.application.services - INFO - LLM Generated SQL: SELECT * FROM orders WHERE order_status = 'cancelled';
+2026-02-26 09:30:51,430 - boons_text_to_sql_agent.application.services - INFO - Validated/Enforced SQL: SELECT * FROM orders WHERE order_status = 'cancelled' LIMIT 1000
+2026-02-26 09:30:51,430 - boons_text_to_sql_agent.application.services - INFO - Query executed successfully. Rows returned: 1
+INFO:     127.0.0.1:60976 - "POST /text-to-sql/ HTTP/1.1" 200 OK
+2026-02-26 09:31:09,050 - boons_text_to_sql_agent.interface.api.routes - INFO - API Request to /text-to-sql - User Role: internal
+2026-02-26 09:31:09,050 - boons_text_to_sql_agent.application.services - INFO - Received question: 'show only yesterday orders which are completed' for role 'internal'
+2026-02-26 09:31:10,360 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+/Users/sanjivankumar/boons-work/ai-agent-text-to-sql/boons-text-to-sql-agent/venv/lib/python3.13/site-packages/pydantic/main.py:464: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_SqlResponse(is_sql=True,...L 1 DAY;", message=None), input_type=_SqlResponse])
+  return self.__pydantic_serializer__.to_python(
+2026-02-26 09:31:10,372 - boons_text_to_sql_agent.application.services - INFO - LLM Generated SQL: SELECT * FROM orders WHERE order_status = 'completed' AND DATE(created_at) = CURDATE() - INTERVAL 1 DAY;
+2026-02-26 09:31:10,372 - boons_text_to_sql_agent.application.services - INFO - Validated/Enforced SQL: SELECT * FROM orders WHERE order_status = 'completed' AND DATE(created_at) = CURDATE() - INTERVAL 1 DAY LIMIT 1000
+2026-02-26 09:31:10,372 - boons_text_to_sql_agent.application.services - INFO - Query executed successfully. Rows returned: 2
+INFO:     127.0.0.1:60996 - "POST /text-to-sql/ HTTP/1.1" 200 OK
+Shutting down services...
