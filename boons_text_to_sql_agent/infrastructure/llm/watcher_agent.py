@@ -64,8 +64,11 @@ class LlmWatcherAgent:
         import json
         
         # We limit the rows to avoid blowing up the context window
-        limited_rows = list(raw_rows)[:10] if raw_rows else []
-        data_json = json.dumps(limited_rows, indent=2, default=str)
+        limited_rows = list(raw_rows)[:50] if raw_rows else []
+        data_json = json.dumps({
+            "total_rows_in_result_set": len(raw_rows),
+            "sample_rows": limited_rows
+        }, indent=2, default=str)
 
         prompt = ChatPromptTemplate.from_messages([
             ("system", 

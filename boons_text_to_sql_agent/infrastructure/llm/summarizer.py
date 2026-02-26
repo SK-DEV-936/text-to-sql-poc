@@ -62,11 +62,19 @@ class LlmSummarizer(ResultSummarizerPort):
         
         summarization_prompt = self._settings.prompts.summarization_prompt if self._settings.prompts else ""
         
+        row_list = list(rows)
+        total_rows = len(row_list)
+        sample_rows = row_list[:100] # Increase sample to 100
+        
         response: _SummarizerResponse = await chain.ainvoke({
             "summarization_prompt": summarization_prompt,
             "user_role": question.scope.role.value,
             "question": question.text,
-            "data_json": json.dumps(list(rows)[:20], indent=2, default=str) # Limit context and handle datetimes
+            "data_json": json.dumps({
+                "total_rows_intercepted": total_rows,
+                "column_sample": list(sample_rows[0].keys()) if sample_rows else [],
+                "row_sample": sample_rows
+            }, indent=2, default=str)
         })
 
         return response.summary, response.chart_spec

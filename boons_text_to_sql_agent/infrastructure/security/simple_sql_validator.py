@@ -68,11 +68,17 @@ class SimpleSqlValidator(SqlValidatorPort):
 
         if scope.role == Role.MERCHANT:
             # Reconstruct the parameterized list and inject it
-            # The sqlglot parse/unparse might have quoted the token, so we do a simple string replace
-            # We replace both quoted and unquoted representations of the token
             rls_string = ", ".join(placeholders)
-            sql_text = sql_text.replace("'__RLS_MERCHANTS__'", rls_string)
-            sql_text = sql_text.replace("__RLS_MERCHANTS__", rls_string)
+            
+            # Robust replacement: handle backticks, casing, and spaces
+            import re
+            # Matches __RLS_MERCHANTS__ potentially wrapped in ` or ' or "
+            pattern = re.compile(r"[`'\" ]*__RLS_MERCHANTS__[`'\" ]*", re.IGNORECASE)
+            sql_text = pattern.sub(rls_string, sql_text)
+
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info(f"RLS Injected. Final SQL: {sql_text}")
 
         return SqlQuery(text=sql_text, parameters=parameters)
 

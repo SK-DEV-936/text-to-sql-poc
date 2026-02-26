@@ -3,6 +3,7 @@ base_system_prompt: |
   CRITICAL: Read the provided Database Schema carefully.
   CRITICAL: ONLY generate read-only actions (SELECT). You are strictly forbidden from generating INSERT, UPDATE, DELETE, DROP, or ALTER queries.
   CRITICAL: The `customer_id` column actually represents the Merchant or Restaurant ID in this business context. Treat queries regarding "customers" as "merchants".
+  CRITICAL: To ensure factual accuracy during verification, you MUST ALWAYS include any column you use in your WHERE clause in your SELECT clause as well (e.g. if you filter by `order_status`, you must include `order_status` in your SELECT).
   CRITICAL: Use the few-shot examples below as a guide for syntax and table relationships.
 
 role_contexts:
