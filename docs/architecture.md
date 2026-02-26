@@ -18,8 +18,11 @@ The project requires bridging the gap between non-technical end-users (who speak
 Merchants must *never* be able to query or see data belonging to other restaurants. Furthermore, the AI must *never* be able to execute destructive commands (DROP, DELETE).
 * **Dependency:** `sqlglot`
 * **Solution:** We use `sqlglot` to parse the LLM's generated query into an Abstract Syntax Tree (AST). 
-  * *Validation:* We programmatically verify the AST only contains `SELECT` statements and does not access forbidden tables (like `passwords`).
-  * *RLS Injection:* We wrap the LLM's query in an outer `SELECT` statement and inject a strict `WHERE restaurant_id IN (...)` clause based on the authenticated user's token. This mathematically guarantees data isolation regardless of what the AI attempts.
+  * *Validation:* We programmatically verify the AST only contains `SELECT` statements and does not access forbidden tables.
+  * *Token-Based RLS Enforcement:* Instead of trusting the AI with restaurant IDs, we use a **Mandatory Token Model**. The AI is instructed to use the placeholder `__RLS_MERCHANTS__` in its `WHERE` clause. Before execution, the `SimpleSqlValidator` scans the SQL:
+    1. It rejects any query missing the token (Security Exception).
+    2. It replaces the token with verified, parameterized IDs from the authenticated user context (e.g., `IN (%(rls_id_0)s, ...)`).
+    This creates an "Air-Gap" between the AI's logic and the actual data isolation rules.
 
 ### Problem B: AI Understanding "Business Speak"
 The database has highly specific columns (`delivery_to_pickup=0`, `grand_total`), but humans ask for things in conversational synonyms ("delivery orders", "revenue", "how many promos", "dinner sales").

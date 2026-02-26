@@ -22,9 +22,11 @@ The AI dynamically adjusting its context based on the user interacting with the 
 
 Beyond instructing the AI, the system enforces hard security constraints on the final SQL before execution. If a query violates a guardrail, it is rejected immediately.
 
-### Row-Level Security (RLS)
-- **Mathematical Scoping:** When a Merchant submits a query, the system mathematically scopes the final SQL string by wrapping it in an outer constraint. Even if the AI hallucinated a query fetching data for "Restaurant 123" when the user is "Restaurant 45", the system intercepts it and forcefully overrides the filter to strictly enforce `WHERE restaurant_id IN (45)`.
-- **Limit Enforcement:** All queries are automatically clamped to a maximum row limit to prevent database overload (default: 1000 rows).
+### Row-Level Security (RLS) via Mandatory Tokens
+- **The Magic Token (`__RLS_MERCHANTS__`)**: To prevent the AI from "guessing" IDs or hallucinating data, we use a proactive placeholder model. The AI is strictly instructed to use the string `__RLS_MERCHANTS__` in its SQL queries instead of actual numbers.
+- **Mandatory Validation**: Before the database sees any SQL, our security validator scans the text. If the token is missing, the query is instantly killed with a Security Violation error. 
+- **Secure ID Substitution**: Only *after* the token is found does the system swap it for the user's actual, verified IDs (e.g., `IN (1, 2)`). This ensures the AI never actually "knows" what data it is filtering, creating a hard security boundary between the conversational layer and the data layer.
+- **Limit Enforcement**: All queries are automatically clamped to a maximum row limit to prevent database overload (default: 1000 rows).
 
 ### Regex Blocklists
 To prevent malicious prompts from slipping through, the system scans the final AI-generated SQL using configurable regex patterns:
