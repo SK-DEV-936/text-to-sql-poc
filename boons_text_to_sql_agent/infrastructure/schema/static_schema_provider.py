@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, Dict
+from typing import Any, Dict, Mapping
 
 from boons_text_to_sql_agent.application.ports import SchemaProviderPort
-from boons_text_to_sql_agent.domain import Scope, Role
+from boons_text_to_sql_agent.domain import Role, Scope
 
 
 class StaticSchemaProvider(SchemaProviderPort):

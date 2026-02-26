@@ -33,8 +33,8 @@ class SqlQuery:
 
 @dataclass(frozen=True)
 class QueryResult:
-    sql: SqlQuery
-    rows: Sequence[Mapping[str, Any]]
+    sql: SqlQuery | None
+    rows: Sequence[Mapping[str, Any]] | None
     summary: str | None = None
     warnings: Sequence[str] | None = None
 

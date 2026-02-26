@@ -19,12 +19,17 @@ uvicorn boons_text_to_sql_agent.main:app --reload
 ### Short-term next steps (minimal POC to “real” agent)
 
 1. **Wire a real local MySQL / Docker DB**
-   - Create a minimal schema compatible with the planned RDS subset:
-     - `merchants`, `orders`, `order_items`, `customers` (limited columns).
-   - Replace `InMemoryDemoExecutor` with an async MySQL executor implementation that:
-     - Uses a **read-only** DB user.
-     - Binds parameters safely.
-     - Enforces timeouts.
+   - Status: **largely done**.
+   - Code and assets now include:
+     - `MySqlExecutor` (async executor using a read-only MySQL user) in `infrastructure/db/mysql_executor.py`.
+     - `main.py` can switch between `InMemoryDemoExecutor` (default) and `MySqlExecutor` using the `USE_IN_MEMORY_EXECUTOR` env var.
+     - `config.py` exposes `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`.
+     - A Dockerized MySQL setup under `db/`:
+       - `db/docker-compose.yml`
+       - `db/init/01-schema.sql` (DDL for `merchants`, `orders`, `order_items`, `customers` + read-only user).
+       - `db/init/02-seed.sql` (simple synthetic seed data).
+   - Still TODO:
+     - Confirm parameter binding patterns once LLM output and validator behavior are finalized.
 
 2. **Implement real LLM-based Text-to-SQL**
    - Replace the placeholder in `LangChainTextToSqlAdapter` with:

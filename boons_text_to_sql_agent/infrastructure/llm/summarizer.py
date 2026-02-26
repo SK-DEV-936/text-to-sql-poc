@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Sequence, Mapping, Any
+from typing import Any, Mapping, Sequence
 
 from boons_text_to_sql_agent.application.ports import ResultSummarizerPort
 from boons_text_to_sql_agent.domain import Question

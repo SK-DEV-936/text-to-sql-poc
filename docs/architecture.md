@@ -50,11 +50,14 @@ This POC follows a **Clean / Hexagonal Architecture** for a local-first, AWS-com
 
 - **Composition root (`main.py`)**
   - Creates FastAPI app.
+  - Loads settings from environment via `load_settings()`.
   - Instantiates:
     - `StaticSchemaProvider`
     - `LangChainTextToSqlAdapter` (placeholder)
     - `SimpleSqlValidator`
-    - `InMemoryDemoExecutor`
+    - Either:
+      - `InMemoryDemoExecutor` (default, for no-DB local runs), or
+      - `MySqlExecutor` (when `USE_IN_MEMORY_EXECUTOR=false`) using a read-only MySQL user.
     - `NoopSummarizer`
   - Wires them into `GenerateAndExecuteQueryService` and mounts the `POST /text-to-sql` router.
 

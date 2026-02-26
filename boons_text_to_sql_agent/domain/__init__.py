@@ -1,4 +1,4 @@
-from .models import Question, Scope, SqlQuery, QueryResult, Role
+from .models import QueryResult, Question, Role, Scope, SqlQuery
 
 __all__ = [
     "Question",

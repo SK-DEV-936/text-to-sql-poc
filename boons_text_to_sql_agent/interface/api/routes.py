@@ -1,13 +1,15 @@
 from __future__ import annotations
 
+import logging
 from typing import Any, List, Mapping
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from boons_text_to_sql_agent.application import GenerateAndExecuteQueryService
-from boons_text_to_sql_agent.domain import Question, Scope, Role
+from boons_text_to_sql_agent.domain import Question, Role, Scope
 
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/text-to-sql", tags=["text-to-sql"])
 
@@ -19,8 +21,8 @@ class QueryRequest(BaseModel):
 
 
 class QueryResponse(BaseModel):
-    final_sql: str
-    rows: List[Mapping[str, Any]]
+    final_sql: str | None = None
+    rows: List[Mapping[str, Any]] | None = None
     summary: str | None = None
     warnings: List[str] | None = None
 
@@ -28,8 +30,12 @@ class QueryResponse(BaseModel):
 def create_router(service: GenerateAndExecuteQueryService) -> APIRouter:
     @router.post("/", response_model=QueryResponse)
     async def generate_and_execute(payload: QueryRequest) -> QueryResponse:
+        logger.info(f"API Request to /text-to-sql - User Role: {payload.role.value}")
         if payload.role == Role.MERCHANT and not payload.merchant_ids:
-            raise HTTPException(status_code=400, detail="merchant_ids is required for merchant role.")
+            logger.warning("Request rejected: merchant_ids missing for merchant role.")
+            raise HTTPException(
+                status_code=400, detail="merchant_ids is required for merchant role."
+            )
 
         scope = Scope(
             role=payload.role,
@@ -40,13 +46,17 @@ def create_router(service: GenerateAndExecuteQueryService) -> APIRouter:
         try:
             result = await service.handle(question)
         except ValueError as exc:
+            logger.error(f"Validation Error during query execution: {exc}")
             raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except Exception as exc:
+            logger.exception(f"Unexpected error during query execution: {exc}")
+            raise HTTPException(status_code=500, detail="Internal server error") from exc
 
         warnings: List[str] | None = list(result.warnings) if result.warnings else None
 
         return QueryResponse(
-            final_sql=result.sql.text,
-            rows=list(result.rows),
+            final_sql=result.sql.text if result.sql else None,
+            rows=list(result.rows) if result.rows is not None else None,
             summary=result.summary,
             warnings=warnings,
         )

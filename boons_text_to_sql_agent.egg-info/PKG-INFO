@@ -1,3 +1,29 @@
+Metadata-Version: 2.4
+Name: boons-text-to-sql-agent
+Version: 0.1.0
+Summary: Clean-architecture Text-to-SQL analytics agent (local-first, AWS-ready POC).
+Author: Boons Text-to-SQL Agent
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: fastapi>=0.115.0
+Requires-Dist: uvicorn[standard]>=0.30.0
+Requires-Dist: pydantic>=2.7.0
+Requires-Dist: pydantic-settings>=2.0.0
+Requires-Dist: langchain>=0.3.0
+Requires-Dist: langchain-aws>=0.2.0
+Requires-Dist: openai>=1.0.0
+Requires-Dist: langchain-openai>=0.1.0
+Requires-Dist: boto3>=1.34.0
+Requires-Dist: aiomysql>=0.2.0
+Requires-Dist: PyYAML>=6.0
+Requires-Dist: streamlit>=1.30.0
+Requires-Dist: requests>=2.31.0
+Provides-Extra: dev
+Requires-Dist: black>=24.0.0; extra == "dev"
+Requires-Dist: ruff>=0.6.0; extra == "dev"
+Requires-Dist: mypy>=1.10.0; extra == "dev"
+Requires-Dist: pytest>=8.0.0; extra == "dev"
+
 ## Boons Text-to-SQL Agent (POC)
 
 Minimal, clean-architecture Python POC for a local-first, AWS-compatible text-to-SQL analytics agent for a food-ordering system.

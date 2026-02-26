@@ -1,0 +1,15 @@
+dangerous_regex_patterns:
+  - ";"
+  - "\\bINSERT\\b"
+  - "\\bUPDATE\\b"
+  - "\\bDELETE\\b"
+  - "\\bDROP\\b"
+  - "\\bALTER\\b"
+  - "\\bTRUNCATE\\b"
+  - "\\bCREATE\\b"
+  - "\\bGRANT\\b"
+  - "\\bREVOKE\\b"
+
+blocked_tables:
+  - "users_passwords"
+  - "internal_audit_logs"

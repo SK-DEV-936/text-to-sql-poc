@@ -1,0 +1,49 @@
+Starting Boons Text-to-SQL Agent Demo...
+Starting FastAPI backend on port 8000...
+Waiting for API to start...
+2026-02-26 09:26:22,479 - boons_text_to_sql_agent.main - INFO - Starting application in environment: local
+INFO:     Started server process [73585]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+Launching Streamlit Chat UI...
+
+  You can now view your Streamlit app in your browser.
+
+  Local URL: http://localhost:8504
+  Network URL: http://10.0.0.237:8504
+
+  For better performance, install the Watchdog module:
+
+  $ xcode-select --install
+  $ pip install watchdog
+            
+2026-02-26 09:26:36,855 - boons_text_to_sql_agent.interface.api.routes - INFO - API Request to /text-to-sql - User Role: merchant
+2026-02-26 09:26:36,855 - boons_text_to_sql_agent.application.services - INFO - Received question: 'what were my sales yesterday' for role 'merchant'
+2026-02-26 09:26:38,148 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+/Users/sanjivankumar/boons-work/ai-agent-text-to-sql/boons-text-to-sql-agent/venv/lib/python3.13/site-packages/pydantic/main.py:464: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_SqlResponse(is_sql=True,...hant_id;', message=None), input_type=_SqlResponse])
+  return self.__pydantic_serializer__.to_python(
+2026-02-26 09:26:38,169 - boons_text_to_sql_agent.application.services - INFO - LLM Generated SQL: SELECT merchant_id, SUM(total_amount) AS total_sales
+FROM orders
+WHERE DATE(created_at) = CURDATE() - INTERVAL 1 DAY
+GROUP BY merchant_id;
+2026-02-26 09:26:38,169 - boons_text_to_sql_agent.application.services - INFO - Validated/Enforced SQL: SELECT * FROM (SELECT merchant_id, SUM(total_amount) AS total_sales
+FROM orders
+WHERE DATE(created_at) = CURDATE() - INTERVAL 1 DAY
+GROUP BY merchant_id) AS _rls_wrapper WHERE merchant_id IN (%(rls_merchant_id_0)s) LIMIT 1000
+2026-02-26 09:26:38,170 - boons_text_to_sql_agent.application.services - INFO - Query executed successfully. Rows returned: 1
+INFO:     127.0.0.1:60870 - "POST /text-to-sql/ HTTP/1.1" 200 OK
+2026-02-26 09:26:38,183 - boons_text_to_sql_agent.interface.api.routes - INFO - API Request to /text-to-sql - User Role: merchant
+2026-02-26 09:26:38,184 - boons_text_to_sql_agent.application.services - INFO - Received question: 'give me total orders last week' for role 'merchant'
+2026-02-26 09:26:39,714 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2026-02-26 09:26:39,724 - boons_text_to_sql_agent.application.services - INFO - LLM Generated SQL: SELECT merchant_id, COUNT(*) AS total_orders
+FROM orders
+WHERE created_at >= NOW() - INTERVAL 1 WEEK
+GROUP BY merchant_id;
+2026-02-26 09:26:39,725 - boons_text_to_sql_agent.application.services - INFO - Validated/Enforced SQL: SELECT * FROM (SELECT merchant_id, COUNT(*) AS total_orders
+FROM orders
+WHERE created_at >= NOW() - INTERVAL 1 WEEK
+GROUP BY merchant_id) AS _rls_wrapper WHERE merchant_id IN (%(rls_merchant_id_0)s, %(rls_merchant_id_1)s) LIMIT 1000
+2026-02-26 09:26:39,725 - boons_text_to_sql_agent.application.services - INFO - Query executed successfully. Rows returned: 0
+INFO:     127.0.0.1:60872 - "POST /text-to-sql/ HTTP/1.1" 200 OK

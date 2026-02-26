@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import Protocol, Mapping, Any
+from typing import Any, Mapping, Protocol
 
-from boons_text_to_sql_agent.domain import Role, Scope
+from boons_text_to_sql_agent.domain import Scope
 
 
 class SchemaProviderPort(Protocol):
