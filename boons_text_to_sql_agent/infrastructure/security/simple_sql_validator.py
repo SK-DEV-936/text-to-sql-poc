@@ -49,33 +49,12 @@ class SimpleSqlValidator(SqlValidatorPort):
             placeholders = []
             for i, m_id in enumerate(scope.merchant_ids):
                 param_key = f"rls_restaurant_id_{i}"
-                placeholders.append(exp.Placeholder(this=param_key))
+                placeholders.append(f"%({param_key})s")
                 parameters[param_key] = m_id
 
-            # Defend against LIMIT/ORDER filtering out data before RLS
-            # Extract ORDER BY and LIMIT so we can hoist them outside the wrapper
-            order_clause = expression.args.get("order")
-            limit_clause = expression.args.get("limit")
+            if "__RLS_MERCHANTS__" not in sql_query.text:
+                raise ValueError("CRITICAL SECURITY ERROR: Missing mandatory `__RLS_MERCHANTS__` token in the WHERE clause.")
             
-            if order_clause:
-                expression.set("order", None)
-            if limit_clause:
-                expression.set("limit", None)
-
-            # Inject RLS into a subquery wrapper to ensure correctness across joins
-            # SELECT * FROM (original_query) AS _rls_wrapper WHERE restaurant_id IN (...)
-            expression = (
-                sqlglot.select("*")
-                .from_(expression.subquery("_rls_wrapper"))
-                .where(exp.In(this=exp.column("restaurant_id"), expressions=placeholders))
-            )
-
-            # Reattach the hoisted clauses
-            if order_clause:
-                expression.set("order", order_clause)
-            if limit_clause:
-                expression.set("limit", limit_clause)
-
         # 4. Enforce LIMIT
         limit_clause = expression.find(exp.Limit)
         if limit_clause:
@@ -87,10 +66,13 @@ class SimpleSqlValidator(SqlValidatorPort):
 
         sql_text = expression.sql(dialect="mysql")
 
-        # 5. Fix placeholders for aiomysql (convert :param to %(param)s)
-        # We only target the RLS placeholders we injected to stay safe.
-        import re
-        sql_text = re.sub(r":rls_restaurant_id_(\d+)", r"%(rls_restaurant_id_\1)s", sql_text)
+        if scope.role == Role.MERCHANT:
+            # Reconstruct the parameterized list and inject it
+            # The sqlglot parse/unparse might have quoted the token, so we do a simple string replace
+            # We replace both quoted and unquoted representations of the token
+            rls_string = ", ".join(placeholders)
+            sql_text = sql_text.replace("'__RLS_MERCHANTS__'", rls_string)
+            sql_text = sql_text.replace("__RLS_MERCHANTS__", rls_string)
 
         return SqlQuery(text=sql_text, parameters=parameters)
 
