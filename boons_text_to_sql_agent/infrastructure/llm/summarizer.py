@@ -55,7 +55,12 @@ class LlmSummarizer(ResultSummarizerPort):
             ("human", "Question: {question}\n\nData Results (JSON):\n{data_json}")
         ])
 
-        chain = prompt | self._llm.with_structured_output(_SummarizerResponse)
+        # method="function_calling" allows us to bypass the strict JSON schema
+        # requirement of response_format, letting the LLM return arbitrary dicts for chart_spec.
+        chain = prompt | self._llm.with_structured_output(
+            _SummarizerResponse, 
+            method="function_calling"
+        )
         
         summarization_prompt = self._settings.prompts.summarization_prompt if self._settings.prompts else ""
         
