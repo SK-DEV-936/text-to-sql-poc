@@ -46,6 +46,46 @@ KNOWLEDGE_DOCS = [
     Document(
         page_content="SEMANTIC SYNONYM: When a user asks for 'top selling items' or 'best products', they are referring to the `menu_name` column in the details tables, ordered by the sum of `quantity`.",
         metadata={"category": "synonym"}
+    ),
+    Document(
+        page_content="SEMANTIC SYNONYM: When a user asks for 'dinner orders' or 'dinner sales', filter orders where the time portion of `created_date` is after 17:00:00 (5 PM). Example: `HOUR(created_date) >= 17`.",
+        metadata={"category": "synonym"}
+    ),
+    Document(
+        page_content="SEMANTIC SYNONYM: When a user asks for 'lunch orders' or 'lunch sales', filter orders where the time portion of `created_date` is between 11:00:00 and 15:00:00. Example: `HOUR(created_date) BETWEEN 11 AND 15`.",
+        metadata={"category": "synonym"}
+    ),
+    Document(
+        page_content="SEMANTIC SYNONYM: If a user asks for 'sales' or 'orders' for a specific meal (like dinner or lunch) without specifying status, ALWAYS filter by `order_status = 'completed'` so you don't include cancelled orders in revenue.",
+        metadata={"category": "synonym"}
+    ),
+    Document(
+        page_content="SEMANTIC SYNONYM: When a user asks for 'delivery orders', they mean `delivery_to_pickup = 0` (or `type = 'delivery'`). When they ask for 'pickup orders', they mean `delivery_to_pickup = 1` (or `type = 'pickup'`).",
+        metadata={"category": "synonym"}
+    ),
+    Document(
+        page_content="SEMANTIC SYNONYM: When a user asks about 'promos', 'discounts', 'coupons', or 'offers', they are referring to the `coupon_amount` and `coupon_code` columns.",
+        metadata={"category": "synonym"}
+    ),
+    Document(
+        page_content="SEMANTIC SYNONYM: 'Active' or 'Pending' orders generally mean `order_status` IN ('pending', 'approved', 'preparing', 'ready', 'in_progress', 'assigned').",
+        metadata={"category": "synonym"}
+    ),
+    Document(
+        page_content="SEMANTIC SYNONYM: 'Delayed' or 'Late' orders refer to `delay_status = 1` or checking if `order_delayed_at` IS NOT NULL.",
+        metadata={"category": "synonym"}
+    ),
+    Document(
+        page_content="SEMANTIC SYNONYM: 'Big tickets' or 'large orders' usually imply filtering where `grand_total` is greater than 100 or another high threshold.",
+        metadata={"category": "synonym"}
+    ),
+    Document(
+        page_content="SEMANTIC SYNONYM: When a user asks who their 'best customers' or 'top spenders' are, group by `customer_id` (and optionally `name`/`email`) and order descending by the SUM of `grand_total`.",
+        metadata={"category": "synonym"}
+    ),
+    Document(
+        page_content="SEMANTIC SYNONYM: When a user asks about 'refunds' or 'refunded orders', they are referring to records where `admin_refund` != '0' or `refund_details` IS NOT NULL.",
+        metadata={"category": "synonym"}
     )
 ]
 
