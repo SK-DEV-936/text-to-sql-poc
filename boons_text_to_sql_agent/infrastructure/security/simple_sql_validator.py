@@ -52,6 +52,16 @@ class SimpleSqlValidator(SqlValidatorPort):
                 placeholders.append(exp.Placeholder(this=param_key))
                 parameters[param_key] = m_id
 
+            # Defend against LIMIT/ORDER filtering out data before RLS
+            # Extract ORDER BY and LIMIT so we can hoist them outside the wrapper
+            order_clause = expression.args.get("order")
+            limit_clause = expression.args.get("limit")
+            
+            if order_clause:
+                expression.set("order", None)
+            if limit_clause:
+                expression.set("limit", None)
+
             # Inject RLS into a subquery wrapper to ensure correctness across joins
             # SELECT * FROM (original_query) AS _rls_wrapper WHERE restaurant_id IN (...)
             expression = (
@@ -59,6 +69,12 @@ class SimpleSqlValidator(SqlValidatorPort):
                 .from_(expression.subquery("_rls_wrapper"))
                 .where(exp.In(this=exp.column("restaurant_id"), expressions=placeholders))
             )
+
+            # Reattach the hoisted clauses
+            if order_clause:
+                expression.set("order", order_clause)
+            if limit_clause:
+                expression.set("limit", limit_clause)
 
         # 4. Enforce LIMIT
         limit_clause = expression.find(exp.Limit)
