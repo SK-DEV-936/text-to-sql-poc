@@ -10,13 +10,10 @@ from boons_text_to_sql_agent.infrastructure.db.mysql_executor import (
     InMemoryDemoExecutor,
     MySqlExecutor,
 )
-from boons_text_to_sql_agent.infrastructure.llm.langchain_text_to_sql import (
-    LangChainTextToSqlAdapter,
-)
-from boons_text_to_sql_agent.infrastructure.llm.summarizer import LlmSummarizer, NoopSummarizer
-from boons_text_to_sql_agent.infrastructure.schema.static_schema_provider import (
-    StaticSchemaProvider,
-)
+from boons_text_to_sql_agent.infrastructure.llm.langchain_text_to_sql import LangChainTextToSqlAdapter
+from boons_text_to_sql_agent.infrastructure.llm.summarizer import LlmSummarizer
+from boons_text_to_sql_agent.infrastructure.llm.watcher_agent import LlmWatcherAgent
+from boons_text_to_sql_agent.infrastructure.schema.static_schema_provider import StaticSchemaProvider
 from boons_text_to_sql_agent.infrastructure.security.simple_sql_validator import SimpleSqlValidator
 from boons_text_to_sql_agent.interface.api.routes import create_router
 
@@ -29,19 +26,20 @@ logger = logging.getLogger(__name__)
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="Boons Text-to-SQL Agent (POC)")
+    app = FastAPI(title="Boons Text-to-SQL Agent API")
 
     settings = load_settings()
     logger.info(f"Starting application in environment: {settings.environment}")
 
-    # Infrastructure adapters
     schema_provider = StaticSchemaProvider()
-    text_to_sql = LangChainTextToSqlAdapter(settings=settings)
-    sql_validator = SimpleSqlValidator(settings=settings)
+    text_to_sql = LangChainTextToSqlAdapter(settings)
+    sql_validator = SimpleSqlValidator(settings)
     
     if settings.use_in_memory_executor:
+        logger.info("Using InMemoryDemoExecutor (SQLite fallback)")
         sql_executor = InMemoryDemoExecutor()
     else:
+        logger.info("Using Python MySqlExecutor (Docker MySQL or AWS RDS)")
         sql_executor = MySqlExecutor(
             host=settings.db_host,
             port=settings.db_port,
@@ -49,23 +47,22 @@ def create_app() -> FastAPI:
             password=settings.db_password,
             db_name=settings.db_name,
         )
-    summarizer = LlmSummarizer(settings=settings)
+        
+    result_summarizer = LlmSummarizer(settings)
+    watcher_agent = LlmWatcherAgent(settings)
 
-    # Application service
     service = GenerateAndExecuteQueryService(
         schema_provider=schema_provider,
         text_to_sql=text_to_sql,
         sql_validator=sql_validator,
         sql_executor=sql_executor,
-        result_summarizer=summarizer,
+        result_summarizer=result_summarizer,
+        watcher_agent=watcher_agent,
     )
 
-    # API layer
     router = create_router(service)
     app.include_router(router)
 
     return app
 
-
 app = create_app()
-

@@ -9,6 +9,7 @@ from boons_text_to_sql_agent.application.ports import (
     SqlExecutorPort,
     SqlValidatorPort,
     TextToSqlPort,
+    WatcherAgentPort,
 )
 from boons_text_to_sql_agent.domain import QueryResult, Question
 
@@ -22,6 +23,7 @@ class GenerateAndExecuteQueryService:
     sql_validator: SqlValidatorPort
     sql_executor: SqlExecutorPort
     result_summarizer: ResultSummarizerPort
+    watcher_agent: WatcherAgentPort
 
     async def handle(self, question: Question) -> QueryResult:
         logger.info(f"Received question: '{question.text}' for role '{question.scope.role.value}'")
@@ -46,8 +48,12 @@ class GenerateAndExecuteQueryService:
                 rows = await self.sql_executor.execute(validated_sql)
                 logger.info(f"Query executed successfully. Rows returned: {len(rows)}")
                 
-                summary = await self.result_summarizer.summarize(question, rows)
-                return QueryResult(sql=validated_sql, rows=rows, summary=summary, warnings=None)
+                draft_summary = await self.result_summarizer.summarize(question, rows)
+                
+                logger.info("Subjecting draft summary to Watcher Agent review...")
+                final_summary = await self.watcher_agent.review_and_correct(question, rows, draft_summary)
+                
+                return QueryResult(sql=validated_sql, rows=rows, summary=final_summary, warnings=None)
                 
             except Exception as e:
                 error_msg = str(e)
