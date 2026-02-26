@@ -23,9 +23,19 @@ if role == "merchant":
     merchant_ids_str = st.sidebar.text_input("Merchant IDs (comma separated)", value="1, 2")
     st.sidebar.caption("Required for the 'merchant' role to enforce Row-Level Security.")
 
-# Initialize chat history
+# Initialize chat history and context tracking
 if "messages" not in st.session_state:
     st.session_state.messages = []
+if "context_role" not in st.session_state:
+    st.session_state.context_role = role
+if "context_merchant_ids" not in st.session_state:
+    st.session_state.context_merchant_ids = merchant_ids_str
+
+# Clear history if context changes
+if st.session_state.context_role != role or st.session_state.context_merchant_ids != merchant_ids_str:
+    st.session_state.messages = []
+    st.session_state.context_role = role
+    st.session_state.context_merchant_ids = merchant_ids_str
 
 # Display chat messages from history on app rerun
 for message in st.session_state.messages:
