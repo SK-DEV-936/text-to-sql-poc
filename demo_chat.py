@@ -63,10 +63,20 @@ if question:
     # Prepare Payload
     merchant_ids = parse_merchant_ids(merchant_ids_str) if role == "merchant" else []
     
+    # Extract last 5 messages for context, excluding the current question
+    history_to_send = st.session_state.messages[-6:-1]
+    chat_history = []
+    for m in history_to_send:
+        if m["role"] == "user":
+            chat_history.append({"role": "user", "content": m["content"]})
+        elif m["role"] == "assistant" and m.get("summary"):
+            chat_history.append({"role": "assistant", "content": m["summary"]})
+            
     payload = {
         "role": role,
         "merchant_ids": merchant_ids,
-        "question": question
+        "question": question,
+        "chat_history": chat_history
     }
 
     # Display assistant response in chat message container

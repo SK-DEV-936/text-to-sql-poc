@@ -18,6 +18,7 @@ class QueryRequest(BaseModel):
     role: Role = Field(..., description="User role, e.g. merchant or internal.")
     merchant_ids: List[int] = Field(default_factory=list)
     question: str = Field(..., description="Natural-language analytics question.")
+    chat_history: list[dict[str, str]] | None = Field(default=None, description="Previous chat messages for context.")
 
 
 class QueryResponse(BaseModel):
@@ -25,6 +26,7 @@ class QueryResponse(BaseModel):
     rows: List[Mapping[str, Any]] | None = None
     summary: str | None = None
     warnings: List[str] | None = None
+    chart_spec: dict | None = None
 
 
 def create_router(service: GenerateAndExecuteQueryService) -> APIRouter:
@@ -41,7 +43,7 @@ def create_router(service: GenerateAndExecuteQueryService) -> APIRouter:
             role=payload.role,
             merchant_ids=payload.merchant_ids,
         )
-        question = Question(text=payload.question, scope=scope)
+        question = Question(text=payload.question, scope=scope, chat_history=payload.chat_history)
 
         try:
             result = await service.handle(question)
@@ -59,6 +61,7 @@ def create_router(service: GenerateAndExecuteQueryService) -> APIRouter:
             rows=list(result.rows) if result.rows is not None else None,
             summary=result.summary,
             warnings=warnings,
+            chart_spec=result.chart_spec,
         )
 
     return router

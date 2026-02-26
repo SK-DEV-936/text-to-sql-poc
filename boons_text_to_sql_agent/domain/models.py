@@ -23,6 +23,7 @@ class Scope:
 class Question:
     text: str
     scope: Scope
+    chat_history: list[dict[str, str]] | None = None
 
 
 @dataclass(frozen=True)
@@ -37,4 +38,5 @@ class QueryResult:
     rows: Sequence[Mapping[str, Any]] | None
     summary: str | None = None
     warnings: Sequence[str] | None = None
+    chart_spec: dict | None = None
 

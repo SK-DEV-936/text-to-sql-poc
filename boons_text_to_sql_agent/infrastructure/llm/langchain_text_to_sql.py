@@ -62,11 +62,13 @@ class LangChainTextToSqlAdapter(TextToSqlPort):
             )
 
     def _build_chain(self) -> Runnable:
+        from langchain_core.prompts import MessagesPlaceholder
         prompt = ChatPromptTemplate.from_messages([
             ("system", "{base_system_prompt}\n\n"
                        "Context/Role Instructions:\n{role_context}\n\n"
                        "Knowledge Base (Schema, Relationships, Synonyms):\n{rag_context}\n\n"
                        "Static Database Schema Payload:\n{schema_json}"),
+            MessagesPlaceholder(variable_name="chat_history"),
             ("human", "{question}")
         ])
         
@@ -105,12 +107,22 @@ class LangChainTextToSqlAdapter(TextToSqlPort):
         docs = self._vector_store.similarity_search(question.text, k=5)
         rag_context = "\n".join(f"- {doc.page_content}" for doc in docs)
         
+        from langchain_core.messages import AIMessage, HumanMessage
+        history_msgs = []
+        if question.chat_history:
+            for msg in question.chat_history:
+                if msg.get("role") == "user":
+                    history_msgs.append(HumanMessage(content=msg.get("content", "")))
+                elif msg.get("role") in ("assistant", "ai"):
+                    history_msgs.append(AIMessage(content=msg.get("content", "")))
+        
         # Invoke the chain
         response: _SqlResponse = await self._chain.ainvoke({
             "base_system_prompt": base_prompt,
             "role_context": role_context,
             "rag_context": rag_context,
             "schema_json": schema_json,
+            "chat_history": history_msgs,
             "question": question.text
         })
         
