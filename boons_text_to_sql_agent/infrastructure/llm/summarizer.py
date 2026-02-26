@@ -55,6 +55,7 @@ class LlmSummarizer(ResultSummarizerPort):
         
         response = await chain.ainvoke({
             "summarization_prompt": summarization_prompt,
+            "user_role": question.scope.role.value,
             "question": question.text,
             "data_json": json.dumps(list(rows)[:20], indent=2, default=str) # Limit context and handle datetimes
         })
