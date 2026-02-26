@@ -47,8 +47,6 @@ class LlmSummarizer(ResultSummarizerPort):
             )
 
     async def summarize(self, question: Question, rows: Sequence[Mapping[str, Any]]) -> tuple[str | None, dict | None]:
-        if not rows:
-            return "No data found matching your query.", None
 
         prompt = ChatPromptTemplate.from_messages([
             ("system", "{summarization_prompt}"),
