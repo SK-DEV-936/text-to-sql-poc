@@ -5,12 +5,14 @@ import streamlit as st
 # FastAPI backend URL
 API_URL = "http://localhost:8000/text-to-sql/"
 
-st.set_page_config(page_title="Boons Text-to-SQL Agent", page_icon="🤖", layout="wide")
-st.title("Boons Text-to-SQL Agent 🤖")
-st.markdown(
-    "Ask natural language questions about your data, "
-    "and the AI agent will generate and execute secure SQL safely."
-)
+st.set_page_config(page_title="boons analytics AI agent", page_icon="🤖", layout="wide")
+st.title("boons analytics AI agent 🤖")
+
+with st.expander("ℹ️ How it works", expanded=False):
+    st.markdown("""
+    Type a natural question about your orders or restaurant, 
+    and the AI agent will securely analyze your data.
+    """)
 
 # Sidebar for Configuration
 st.sidebar.header("User Context")
@@ -83,7 +85,7 @@ if question:
 
     # Display assistant response in chat message container
     with st.chat_message("assistant"):
-        with st.spinner("Generating and executing SQL..."):
+        with st.spinner("Analyzing your data..."):
             try:
                 response = requests.post(API_URL, json=payload)
                 if response.status_code == 200:
