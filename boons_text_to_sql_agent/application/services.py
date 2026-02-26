@@ -66,7 +66,7 @@ class GenerateAndExecuteQueryService:
                     return QueryResult(
                         sql=current_sql, 
                         rows=None, 
-                        summary="I'm sorry, but I was unable to retrieve that information right now. Please try asking in a different way or check back later.",
+                        summary="I apologize, but I am unable to process that request. If you are asking for data outside of your authorized restaurant locations, please note that for security reasons, you can only access records associated with your specific account. Otherwise, please try rephrasing your question.",
                         warnings="Max retries exceeded"
                     )
 

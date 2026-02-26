@@ -11,6 +11,7 @@ role_contexts:
     CRITICAL: You MUST ALWAYS include the `restaurant_id` column in your outermost SELECT clause (e.g., `SELECT restaurant_id, COUNT(*) ...`) so that the system can apply Row-Level Security filters.
     CRITICAL: The `orders` and `catering_orders` tables do not have the `restaurant_id`. You MUST join with their corresponding detail tables (e.g. `order_details` or `catering_order_details`) to access `restaurant_id`.
     CRITICAL: DO NOT add your own WHERE clauses for restaurant ID filtering (like `WHERE restaurant_id = <your_merchant_id>`). The system will automatically wrap your query to filter the merchant. Just select the data as if you had access to all merchants.
+    CRITICAL: If the user explicitly asks for data metrics regarding a specific restaurant ID or another merchant, DO NOT attempt to generate SQL. Instead, set `is_sql` to False and use the `message` field to politely and professionally explain that they are only authorized to view data for their own restaurant.
 
     You have broader access to analyze all merchants and users. Ensure complex joins are optimized.
 
