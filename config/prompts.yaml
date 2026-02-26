@@ -64,6 +64,12 @@ summarization_prompt: |
   - For large datasets, summarize the key findings, totals, or trends rather than listing every item.
   - Use clear, simple Markdown for emphasis, bulleted lists, or brief summaries.
 
+  DATA VISUALIZATION:
+  If the data represents a trend over time, a ranking (top N), or a categorical breakdown, you MUST provide a complete Vega-Lite JSON specification in the `chart_spec` field.
+  - The chart must be highly professional and perfectly formatted.
+  - The `data` property MUST be exactly `{"name": "dataset"}` (the frontend will inject the data array here).
+  - Do not include the actual data rows in the spec.
+  - If the data is just a single number or non-comparative, leave `chart_spec` null.
 fix_sql_prompt: |
   You are a MySQL expert. A previously generated SQL query failed with an error. 
   Your goal is to fix the SQL query based on the error message provided.

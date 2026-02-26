@@ -6,7 +6,6 @@ from boons_text_to_sql_agent.domain import Question
 
 
 class ResultSummarizerPort(Protocol):
-    async def summarize(self, question: Question, rows: Sequence[Mapping[str, Any]]) -> str | None:
-        """Optionally summarize the result rows for the caller."""
+    async def summarize(self, question: Question, rows: Sequence[Mapping[str, Any]]) -> tuple[str | None, dict | None]:
+        """Optionally summarize the result rows and generate a Vega-Lite chart spec."""
         raise NotImplementedError
-

@@ -8,14 +8,20 @@ from boons_text_to_sql_agent.config import Settings
 from boons_text_to_sql_agent.domain import Question
 
 
+from pydantic import BaseModel, Field
+
+class _SummarizerResponse(BaseModel):
+    summary: str = Field(description="The natural language summary of the data.")
+    chart_spec: dict | None = Field(
+        default=None,
+        description="A complete valid Vega-Lite JSON specification object if the data contains trends, rankings, or comparisons that should be charted. Must use 'data': {'name': 'dataset'} as the data source so we can inject the rows natively. If no chart makes sense, return null."
+    )
+
 class NoopSummarizer(ResultSummarizerPort):
-    """Initial summarizer implementation: returns no summary.
+    """Initial summarizer implementation: returns no summary."""
 
-    This keeps behavior simple; we can plug in an LLM-based summarizer later.
-    """
-
-    async def summarize(self, question: Question, rows: Sequence[Mapping[str, Any]]) -> str | None:
-        return None
+    async def summarize(self, question: Question, rows: Sequence[Mapping[str, Any]]) -> tuple[str | None, dict | None]:
+        return None, None
 
 
 class LlmSummarizer(ResultSummarizerPort):
@@ -40,25 +46,25 @@ class LlmSummarizer(ResultSummarizerPort):
                 temperature=0.7
             )
 
-    async def summarize(self, question: Question, rows: Sequence[Mapping[str, Any]]) -> str | None:
+    async def summarize(self, question: Question, rows: Sequence[Mapping[str, Any]]) -> tuple[str | None, dict | None]:
         if not rows:
-            return "No data found matching your query."
+            return "No data found matching your query.", None
 
         prompt = ChatPromptTemplate.from_messages([
             ("system", "{summarization_prompt}"),
             ("human", "Question: {question}\n\nData Results (JSON):\n{data_json}")
         ])
 
-        chain = prompt | self._llm
+        chain = prompt | self._llm.with_structured_output(_SummarizerResponse)
         
         summarization_prompt = self._settings.prompts.summarization_prompt if self._settings.prompts else ""
         
-        response = await chain.ainvoke({
+        response: _SummarizerResponse = await chain.ainvoke({
             "summarization_prompt": summarization_prompt,
             "user_role": question.scope.role.value,
             "question": question.text,
             "data_json": json.dumps(list(rows)[:20], indent=2, default=str) # Limit context and handle datetimes
         })
 
-        return str(response.content)
+        return response.summary, response.chart_spec
 

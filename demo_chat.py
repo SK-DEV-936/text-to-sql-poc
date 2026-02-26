@@ -42,6 +42,8 @@ for message in st.session_state.messages:
                 else:
                     if "summary" in message and message["summary"]:
                         st.markdown(message['summary'])
+                    if message.get("chart_spec"):
+                        st.vega_lite_chart(message["chart_spec"], use_container_width=True)
 
 def parse_merchant_ids(ids_str):
     if not ids_str.strip():
@@ -104,13 +106,20 @@ if question:
                         if data.get("summary"):
                             st.markdown(data['summary'])
                             
+                        chart_spec = data.get("chart_spec")
+                        if chart_spec:
+                            # Inject the row data into the Vega-Lite spec
+                            chart_spec["data"] = {"values": data["rows"]}
+                            st.vega_lite_chart(chart_spec, use_container_width=True)
+                            
                         # Add to history
                         st.session_state.messages.append({
                             "role": "assistant",
                             "final_sql": data["final_sql"],
                             "rows": data["rows"],
                             "summary": data.get("summary"),
-                            "warnings": data.get("warnings")
+                            "warnings": data.get("warnings"),
+                            "chart_spec": chart_spec
                         })
                 else:
                     error_msg = f"API Error {response.status_code}: {response.text}"

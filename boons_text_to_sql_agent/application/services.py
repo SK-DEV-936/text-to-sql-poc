@@ -48,12 +48,12 @@ class GenerateAndExecuteQueryService:
                 rows = await self.sql_executor.execute(validated_sql)
                 logger.info(f"Query executed successfully. Rows returned: {len(rows)}")
                 
-                draft_summary = await self.result_summarizer.summarize(question, rows)
+                draft_summary, chart_spec = await self.result_summarizer.summarize(question, rows)
                 
                 logger.info("Subjecting draft summary to Watcher Agent review...")
                 final_summary = await self.watcher_agent.review_and_correct(question, rows, draft_summary)
                 
-                return QueryResult(sql=validated_sql, rows=rows, summary=final_summary, warnings=None)
+                return QueryResult(sql=validated_sql, rows=rows, summary=final_summary, warnings=None, chart_spec=chart_spec)
                 
             except Exception as e:
                 error_msg = str(e)
