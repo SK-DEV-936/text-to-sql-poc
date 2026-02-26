@@ -75,14 +75,16 @@ class SimpleSqlValidator(SqlValidatorPort):
             # Reconstruct the parameterized list and inject it
             rls_string = ", ".join(placeholders)
             
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info(f"RLS Injected. Pre-replacement SQL: {sql_text}")
+            
             # Robust replacement: handle backticks, casing, and spaces
             import re
             # Matches __RLS_MERCHANTS__ potentially wrapped in ` or ' or "
             pattern = re.compile(r"[`'\" ]*__RLS_MERCHANTS__[`'\" ]*", re.IGNORECASE)
             sql_text = pattern.sub(rls_string, sql_text)
 
-            import logging
-            logger = logging.getLogger(__name__)
             logger.info(f"RLS Injected. Final SQL: {sql_text}")
 
         return SqlQuery(text=sql_text, parameters=parameters)
