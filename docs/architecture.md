@@ -43,7 +43,108 @@ Merchants don't want to see JSON arrays or raw SQL code; they want a conversatio
 
 ---
 
-## 3. Architecture Layers & Flow
+## 3. Block Diagram & Execution Flow
+
+The following diagram illustrates the lifecycle of a single user request flowing through the system.
+
+```mermaid
+graph TD
+    %% Define Nodes
+    User(("User (Merchant/Internal)"))
+    UI["Streamlit UI / chat interface"]
+    API["FastAPI POST /text-to-sql"]
+    
+    subgraph "Application Orchestrator"
+        Service["GenerateAndExecuteQueryService"]
+    end
+    
+    subgraph "Knowledge & Generation Context"
+        Schema["StaticSchemaProvider (Tables/Columns)"]
+        VectorDB[("FAISS / Bedrock Vector DB")]
+        LLM_Gen{{"LLM: Text-to-SQL Generator"}}
+    end
+    
+    subgraph "Security Validation (sqlglot AST)"
+        Validator["SimpleSqlValidator"]
+    end
+    
+    subgraph "Execution & Self-Correction"
+        Executor[("MySQL / AWS RDS Database")]
+        LLM_Fix{{"LLM: SQL Fixer (Retry Loop)"}}
+    end
+    
+    subgraph "Presentation"
+        Summarizer{{"LLM: Result Summarizer"}}
+    end
+
+    %% Flow
+    User -- "1. Asks Question" --> UI
+    UI -- "2. HTTP Request" --> API
+    API --> Service
+    
+    Service -- "3a. Fetch Structure" --> Schema
+    Service -- "3b. Semantic Search" --> VectorDB
+    Schema -.-> LLM_Gen
+    VectorDB -. "Schema & Synonyms" .-> LLM_Gen
+    
+    Service -- "4. Generate SQL" --> LLM_Gen
+    LLM_Gen -- "Draft SQL" --> Service
+    
+    Service -- "5. Secures SQL" --> Validator
+    Validator -- "AST Validated & RLS Injected" --> Service
+    
+    Service -- "6. Executes Query" --> Executor
+    
+    %% Self Correction Loop
+    Executor -- "7a. Syntax Error" --> LLM_Fix
+    LLM_Fix -- "Corrected SQL" --> Validator
+    
+    %% Success Path
+    Executor -- "7b. Success (Data Rows)" --> Service
+    
+    Service -- "8. Summarize Results" --> Summarizer
+    Summarizer -- "Business English" --> Service
+    
+    Service -- "9. JSON Response" --> API
+    API --> UI
+    UI -- "10. Polite Answer" --> User
+
+    %% Styling
+    classDef llm fill:#f9d0c4,stroke:#333,stroke-width:2px;
+    classDef db fill:#c4ddf9,stroke:#333,stroke-width:2px;
+    classDef core fill:#d4edda,stroke:#333,stroke-width:2px;
+    classDef security fill:#fff3cd,stroke:#333,stroke-width:2px;
+    
+    class LLM_Gen,LLM_Fix,Summarizer llm;
+    class Executor,VectorDB db;
+    class Service core;
+    class Validator security;
+```
+
+### Step-by-Step Component Breakdown
+
+1. **Input (Streamlit -> FastAPI)**: The user types a question (e.g., *"How many dinner orders did I have yesterday?"*). The Streamlit UI sends this text, along with the user's role (`merchant`) and authentication ID (`restaurant_id=5`), to the FastAPI backend.
+2. **Orchestration (`GenerateAndExecuteQueryService`)**: The main service receives the request and coordinates the entire pipeline.
+3. **Context Retrieval (RAG)**:
+   - **Schema**: The service pulls the static table structures and valid relationships.
+   - **Vector DB**: It queries the Vector Database (FAISS locally or Bedrock on AWS) searching for "dinner orders". The database returns the semantic rule: *"Dinner means `HOUR(created_date) >= 17` and `order_status = 'completed'`"*.
+4. **LLM Generation (`LangChainTextToSqlAdapter`)**: The LangChain prompt is assembled using the user's role limitations and the retrieved RAG synonyms. The LLM generates a Draft MySQL query.
+   - *Draft Output*: `SELECT COUNT(*) FROM orders WHERE HOUR(...) >= 17...`
+5. **Security & Validation (`SimpleSqlValidator`)**: 
+   - Uses `sqlglot` to parse the Draft SQL into a strict mathematical tree (AST). 
+   - It blocks destructive queries (DROP, DELETE).
+   - *RLS Injection*: It injects `WHERE restaurant_id IN (5)` dynamically into the query logic to guarantee the merchant cannot see data for Restaurant 8.
+6. **Execution (`MySqlExecutor`)**: The validated SQL is sent async to the actual database structure.
+7. **Self-Correction Loop**: 
+   - If MySQL throws an error (e.g., "Unknown column"), the Service catches it. 
+   - It sends the broken SQL and the exact error to a secondary **SQL Fixer** LLM to correct the mistake. It retries this up to 2 times automatically.
+   - If successful, MySQL returns the aggregated data rows.
+8. **Summarization (`LlmSummarizer`)**: The raw data rows (e.g., `[{"COUNT(*)": 82}]`) are passed to a final LLM. The prompt instructs the summarizer to speak to a merchant politely. 
+9. **Final Output**: The pipeline completes, sending the conversational sentence *"Your restaurant had 82 dinner orders yesterday."* back to the user's chat screen.
+
+---
+
+## 4. Architecture Layers & Flow
 
 The application follows strictly decoupled layers:
 
