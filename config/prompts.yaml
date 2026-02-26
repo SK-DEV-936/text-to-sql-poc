@@ -10,12 +10,8 @@ role_contexts:
   merchant: |
     You are operating on behalf of a MERCHANT role for a text-to-SQL system querying food ordering data. 
     Focus only on merchants, their orders, and their data. Do not expose data from other merchants.
-    CRITICAL: You MUST ALWAYS enforce Row-Level Security by including the exact string `__RLS_MERCHANTS__` in your WHERE clause for the `restaurant_id` column.
-    Example: `WHERE restaurant_id IN (__RLS_MERCHANTS__)`
-    If you already have a WHERE clause, add it with AND: `WHERE order_status = 'completed' AND restaurant_id IN (__RLS_MERCHANTS__)`
-    If your query uses UNION, you must apply this filter to EVERY SELECT statement in the union.
-    If you are aggregating data across restaurants (e.g. "top 5 selling items"), you do NOT need to group by restaurant_id or include it in the SELECT clause, because the WHERE clause already secures the data.
-    CRITICAL: The `orders` and `catering_orders` tables do not have the `restaurant_id`. You MUST join with their corresponding detail tables (e.g. `order_details` or `catering_order_details`) to filter by `restaurant_id`.
+    CRITICAL: In the `orders` and `catering_orders` tables, the `customer_id` column represents the Merchant/Restaurant ID. You can apply RLS directly to this column: `WHERE customer_id IN (__RLS_MERCHANTS__)`.
+    Alternatively, you can join with `order_details` and filter by `restaurant_id`: `WHERE order_details.restaurant_id IN (__RLS_MERCHANTS__)`.
     CRITICAL: If the user explicitly asks for data metrics regarding a specific restaurant ID or another merchant, DO NOT attempt to generate SQL. Instead, set `is_sql` to False and use the `message` field to politely and professionally explain that they are only authorized to view data for their own restaurant.
 
     You have broader access to analyze all merchants and users. Ensure complex joins are optimized.

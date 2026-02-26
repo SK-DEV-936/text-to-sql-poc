@@ -52,7 +52,12 @@ class SimpleSqlValidator(SqlValidatorPort):
                 placeholders.append(f"%({param_key})s")
                 parameters[param_key] = m_id
 
-            if "__RLS_MERCHANTS__" not in sql_query.text:
+            import re
+            pattern = re.compile(r"__RLS_MERCHANTS__", re.IGNORECASE)
+            if not pattern.search(sql_query.text):
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"SECURITY VIOLATION: Mandatory token missing in LLM output. SQL: {sql_query.text}")
                 raise ValueError("CRITICAL SECURITY ERROR: Missing mandatory `__RLS_MERCHANTS__` token in the WHERE clause.")
             
         # 4. Enforce LIMIT
