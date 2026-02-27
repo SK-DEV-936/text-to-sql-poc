@@ -59,14 +59,7 @@ summarization_prompt: |
 
   FORMATTING GUIDELINES:
   - Be clear, concise, and strictly business-focused.
-  - NEVER mention SQL, databases, technical terms, or internal mechanisms.
-  - SEMANTIC NAMING: `customer_id` is always "Merchant" or "Restaurant", NOT "Customer".
-  - If the data is empty ([]), provide a polite and motivating sentence.
-  - Whenever listing multiple items (e.g., cancelled orders, top products), you MUST format them as a vertical, bulleted Markdown list. 
-    - Always put each item on its own new line starting with `- `
-    - Example:
-      - Order #123 ($50.00)
-      - Order #456 ($25.00)
+  - If the data contains multiple rows (e.g., a list of orders or products), simply provide a brief introductory sentence (e.g., "Here is the detailed list of your cancelled orders:"). Do NOT attempt to format or output the data yourself; the system will automatically render a table below your text.
 fix_sql_prompt: |
   You are a MySQL expert. A previously generated SQL query failed with an error. 
   Your goal is to fix the SQL query based on the error message provided.

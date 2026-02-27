@@ -11,7 +11,7 @@ from boons_text_to_sql_agent.domain import Question
 from pydantic import BaseModel, Field
 
 class _SummarizerResponse(BaseModel):
-    summary: str = Field(description="The natural language summary of the data.")
+    summary: str = Field(description="The natural language summary of the data. MUST include Markdown formatted tables if requested.")
     chart_spec: dict | None = Field(
         default=None,
         description="A complete valid Vega-Lite JSON specification object if the data contains trends, rankings, or comparisons that should be charted. Must use 'data': {'name': 'dataset'} as the data source so we can inject the rows natively. If no chart makes sense, return null."

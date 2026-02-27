@@ -64,6 +64,8 @@ for message in st.session_state.messages:
                     if message.get("chart_spec"):
                         # Use width='stretch' to avoid deprecation warning
                         st.vega_lite_chart(message["chart_spec"], width="stretch")
+                    elif message.get("rows") and len(message["rows"]) > 1:
+                        st.dataframe(message["rows"], use_container_width=True)
 
 # Define Quick Insights based on Role
 merchant_insights = [
@@ -185,6 +187,8 @@ if question:
                             chart_spec["data"] = {"values": data["rows"]}
                             # Use width='stretch' to avoid deprecation warning
                             st.vega_lite_chart(chart_spec, width="stretch")
+                        elif data.get("rows") and len(data["rows"]) > 1:
+                            st.dataframe(data["rows"], use_container_width=True)
                             
                         # Add to history
                         st.session_state.messages.append({
