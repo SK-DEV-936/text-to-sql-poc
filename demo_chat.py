@@ -196,8 +196,8 @@ with chat_col:
 
         with chat_container:
             with st.chat_message("assistant"):
-                with st.status("Analyzing Request...", expanded=True) as status:
-                    st.write("Connecting to AI Agent...")
+                with st.status("Analyzing your business context...", expanded=True) as status:
+                    st.write("Gathering relevant data insights...")
                     try:
                         response = requests.post(API_URL, json=payload)
                         if response.status_code == 200:
