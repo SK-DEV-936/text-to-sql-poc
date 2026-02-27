@@ -24,7 +24,7 @@ KNOWLEDGE_DOCS = [
         metadata={"category": "relationship", "table": "order_details"}
     ),
     Document(
-        page_content="When focusing on cancellations, filter the 'orders' table using the 'order_status' column where the status indicates cancellation (e.g., 'canceled', 'auto_canceled'). This will help in identifying all canceled orders.",
+        page_content="When focusing on cancellations, you MUST filter the 'orders' table using exactly `order_status = 'cancelled'` (spelled with two L's). Do NOT use 'canceled' or 'auto_canceled'.",
         metadata={"category": "synonym", "table": "orders"}
     ),
     Document(

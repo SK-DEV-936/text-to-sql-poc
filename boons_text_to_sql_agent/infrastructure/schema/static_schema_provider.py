@@ -71,7 +71,7 @@ class StaticSchemaProvider(SchemaProviderPort):
                                                         "order_delivery_canceled_at": "Timestamp when the delivery was canceled.",
                                                         "order_assigned_at": "Timestamp when the order was assigned.",
                                                         "order_scheduled_at": "Timestamp when the order was scheduled.",
-                                                        "order_status": "Current status of the order.",
+                                                        "order_status": "Current status of the order. Valid values are exactly: 'completed', 'cancelled' (with two Ls), or 'returned'.",
                                                         "note": "Additional notes for the order.",
                                                         "total_menu_price": "Total price of the menu items.",
                                                         "total_delivery_charge": "Total delivery charge.",
