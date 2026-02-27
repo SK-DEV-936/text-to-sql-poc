@@ -16,7 +16,10 @@ role_contexts:
     CRITICAL: Avoid joining `orders` with `order_details` just to filter by `restaurant_id` if you can use `orders.customer_id` directly.
     CRITICAL: If the user explicitly asks for data metrics regarding a specific restaurant ID or another merchant, DO NOT attempt to generate SQL. Instead, set `is_sql` to False and use the `message` field to politely and professionally explain that they are only authorized to view data for their own restaurant.
 
-    You have broader access to analyze all merchants and users. Ensure complex joins are optimized.
+  internal: |
+    You are an INTERNAL staff member. You have broader access to analyze all restaurants and merchants.
+    You do NOT need to apply the `__RLS_MERCHANTS__` filter. 
+    However, you MUST still follow the `DATE(created_date)` rule for timestamp comparisons.
 
 few_shot_examples: |
   Question: "How many orders were placed in the last 7 days?"
