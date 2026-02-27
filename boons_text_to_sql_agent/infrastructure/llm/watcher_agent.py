@@ -103,52 +103,19 @@ class LlmWatcherAgent:
                 "draft_summary": draft_summary
             })
             
-            if not response.is_safe and response.corrected_text:
+            if not response.is_safe:
                 import logging
                 logger = logging.getLogger(__name__)
                 logger.warning(f"Watcher Agent intercepted unsafe response. Reason: {response.reasoning}")
-                return self._sanitize_text(response.corrected_text)
+                # We log the warning, but we intentionally pass through the original draft summary.
+                # Attempting to have the Watcher auto-correct the text frequently results in 
+                # conversational artifacts ("The correct revenue is...") and breaks markdown.
+                return draft_summary
                 
-            return self._sanitize_text(draft_summary)
+            return draft_summary
             
         except Exception as e:
             import logging
             logger = logging.getLogger(__name__)
             logger.error(f"Watcher Agent failed during evaluation: {e}. Falling back to draft summary.")
-            return self._sanitize_text(draft_summary)
-
-    def _sanitize_text(self, text: str) -> str:
-        """Post-process text to remove common LLM meta-talk and formatting artifacts."""
-        if not text:
-            return text
-            
-        import re
-        
-        # 1. Remove common prefixes often hallucinated by LLMs during correction
-        prefixes_to_remove = [
-            r"^Correction:\s*",
-            r"^Revised summary:\s*",
-            r"^Updated summary:\s*",
-            r"^Fixed summary:\s*",
-            r"^The corrected response is:\s*",
-            r"^The total revenue is actually:\s*",
-            r"^Actually,\s+",
-            r"^However,\s+",
-            r"^Here is the corrected response:\s*"
-        ]
-        
-        sanitized = text
-        for pattern in prefixes_to_remove:
-            sanitized = re.sub(pattern, "", sanitized, flags=re.IGNORECASE)
-            
-        # 2. Programmatically replace the special asterisk '∗' (U+2217) with '*'
-        sanitized = sanitized.replace("∗", "*")
-        
-        # 3. FORCE SPACES around double asterisks (markdown bold) to prevent smushing
-        # We wrap the entire bold block in spaces to ensure it's not smushed against other text.
-        sanitized = re.sub(r'(\*\*[^*]+\*\*)', r' \1 ', sanitized)
-        
-        # 4. Ensure no double spaces (except those intentional for markdown)
-        sanitized = re.sub(r'(?<!\*)\s{2,}(?!\*)', ' ', sanitized)
-        
-        return sanitized.strip()
+            return draft_summary
