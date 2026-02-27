@@ -288,8 +288,11 @@ else:
     elif c_data["type"] == "table":
         df = pd.DataFrame(c_data["data"])
         
+        # Strip columns that contain absolutely no data
+        df = df.dropna(axis=1, how='all')
+        
         # Make table headers user-friendly (Title Case, no underscores)
-        df.columns = [col.replace("_", " ").title() for col in df.columns]
+        df.columns = [str(col).replace("_", " ").title() for col in df.columns]
         
         st.dataframe(df, use_container_width=True, hide_index=True)
         
