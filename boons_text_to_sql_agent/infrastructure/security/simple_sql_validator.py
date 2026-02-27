@@ -40,10 +40,20 @@ class SimpleSqlValidator(SqlValidatorPort):
 
         parameters = dict(sql_query.parameters)
 
-        # 3. Handle Merchant RLS
+        # 3. Handle Role-Based Security
+        import re
+        token_pattern = re.compile(r"__RLS_MERCHANTS__", re.IGNORECASE)
+        has_token = token_pattern.search(sql_query.text)
+
         if scope.role == Role.MERCHANT:
             if not scope.merchant_ids:
                 raise ValueError("Merchant role requires at least one merchant_id in scope.")
+
+            if not has_token:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"SECURITY VIOLATION: Mandatory token missing in LLM output. SQL: {sql_query.text}")
+                raise ValueError("CRITICAL SECURITY ERROR: Missing mandatory `__RLS_MERCHANTS__` token in the WHERE clause.")
 
             # Create parameterized placeholders
             placeholders = []
@@ -51,15 +61,11 @@ class SimpleSqlValidator(SqlValidatorPort):
                 param_key = f"rls_restaurant_id_{i}"
                 placeholders.append(f"%({param_key})s")
                 parameters[param_key] = m_id
-
-            import re
-            pattern = re.compile(r"__RLS_MERCHANTS__", re.IGNORECASE)
-            if not pattern.search(sql_query.text):
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.error(f"SECURITY VIOLATION: Mandatory token missing in LLM output. SQL: {sql_query.text}")
-                raise ValueError("CRITICAL SECURITY ERROR: Missing mandatory `__RLS_MERCHANTS__` token in the WHERE clause.")
-            
+                
+        elif scope.role == Role.INTERNAL:
+            if has_token:
+                raise ValueError("Internal role is forbidden from using the `__RLS_MERCHANTS__` token. Please generate a standard global query without it.")
+                
         # 4. Enforce LIMIT
         limit_clause = expression.find(exp.Limit)
         if limit_clause:
@@ -81,8 +87,9 @@ class SimpleSqlValidator(SqlValidatorPort):
             
             # Robust replacement: handle backticks, casing, and spaces
             import re
-            # Matches __RLS_MERCHANTS__ potentially wrapped in ` or ' or "
-            pattern = re.compile(r"[`'\" ]*__RLS_MERCHANTS__[`'\" ]*", re.IGNORECASE)
+            # Comprehensive replacement for any casing and common SQL identifier wrappings
+            # We use a non-consuming lookahead/lookbehind or just match the token + any direct quotes
+            pattern = re.compile(r"[`'\"]*__RLS_MERCHANTS__[`'\"]*", re.IGNORECASE)
             sql_text = pattern.sub(rls_string, sql_text)
 
             logger.info(f"RLS Injected. Final SQL: {sql_text}")

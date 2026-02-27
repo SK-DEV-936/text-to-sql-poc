@@ -9,3 +9,5 @@ venv/
 .mypy_cache/
 .ruff_cache/
 faiss_index/
+*.log
+test_results.json

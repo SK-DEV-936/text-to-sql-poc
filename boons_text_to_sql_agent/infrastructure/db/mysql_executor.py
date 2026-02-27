@@ -133,8 +133,18 @@ class MySqlExecutor(SqlExecutorPort):
         # Local import to avoid requiring aiomysql for non-DB scenarios.
         import aiomysql  # type: ignore[import]
 
-        # For now we assume no parameters or simple mapping compatible with aiomysql.
         params = sql_query.parameters or {}
+        sql_text = sql_query.text
+
+        # If we have parameters, we must escape literal '%' characters as '%%' 
+        # so they aren't interpreted as missing placeholders by the driver.
+        # This is critical for queries using DATE_FORMAT(..., '%Y-%m-%d').
+        if params:
+            import re
+            # Regex to find % that is NOT followed by (key)s
+            # Note: The driver uses %(name)s for named parameters.
+            # We look for % not immediately followed by ( to avoid escaping valid placeholders.
+            sql_text = re.sub(r'%(?!\()', '%%', sql_text)
 
         conn = await aiomysql.connect(
             host=self.host,
@@ -148,7 +158,7 @@ class MySqlExecutor(SqlExecutorPort):
         )
         try:
             async with conn.cursor() as cursor:
-                await cursor.execute(sql_query.text, params)
+                await cursor.execute(sql_text, params)
                 rows = await cursor.fetchall()
         finally:
             conn.close()
