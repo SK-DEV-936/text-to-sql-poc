@@ -74,13 +74,13 @@ class LangChainTextToSqlAdapter(TextToSqlPort):
             )
 
     def _build_intent_chain(self) -> Runnable:
+        
+        gatekeeper_prompt = "You are a gatekeeper for a restaurant analytics AI."
+        if self._settings.prompts and self._settings.prompts.intent_gatekeeper_prompt:
+            gatekeeper_prompt = self._settings.prompts.intent_gatekeeper_prompt
+            
         prompt = ChatPromptTemplate.from_messages([
-            ("system", 
-             "You are a gatekeeper for a restaurant analytics AI.\n"
-             "Your job is to determine if the user's question is about restaurant data, revenue, orders, menu performance, or business analytics.\n"
-             "If the question is out of scope (jokes, general chat, life advice, coding, etc.), set `is_analytics_related` to False and provide a professional refusal message.\n"
-             "Refusal Message: 'I am your dedicated Analytics Assistant. I can help you with insights regarding revenue, orders, and restaurant performance, but I am unable to assist with general chat or non-business topics. How can I help you with your data today?'"
-            ),
+            ("system", gatekeeper_prompt),
             ("human", "{question}")
         ])
         return prompt | self._llm.with_structured_output(_IntentResponse)

@@ -1,10 +1,12 @@
 import asyncio
 from boons_text_to_sql_agent.config import load_settings
-from boons_text_to_sql_agent.infrastructure.db.in_memory_executor import InMemoryDemoExecutor
+from boons_text_to_sql_agent.infrastructure.db.mysql_executor import InMemoryDemoExecutor
 from boons_text_to_sql_agent.infrastructure.db.mysql_executor import MySqlExecutor
 from boons_text_to_sql_agent.domain import SqlQuery
 
-async def main():
+import pytest
+@pytest.mark.asyncio
+async def test_query_main():
     settings = load_settings()
     if settings.use_in_memory_executor:
         executor = InMemoryDemoExecutor()
@@ -21,4 +23,5 @@ async def main():
     except Exception as e:
         print("Error:", type(e), e)
 
-asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(test_query_main())

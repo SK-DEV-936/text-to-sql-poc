@@ -4,11 +4,11 @@ import os
 
 def generate_today_sql():
     # Base IDs (skipping further ahead to avoid today's previously inserted IDs)
-    order_id = 11000
-    order_details_id = 31000
-    catering_id = 5100
-    catering_details_id = 11000
-    history_id = 21000
+    order_id = 111000
+    order_details_id = 131000
+    catering_id = 105100
+    catering_details_id = 111000
+    history_id = 121000
     
     output_lines = ["USE boons;"]
     

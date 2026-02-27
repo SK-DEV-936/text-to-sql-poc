@@ -52,84 +52,57 @@ The following diagram illustrates the lifecycle of a single user request flowing
 
 ```mermaid
 graph TD
-    %% Define Nodes
+
+    %% Nodes
     User(("User (Merchant/Internal)"))
-    UI["Streamlit UI / chat interface"]
+    UI["Streamlit UI / Chat Interface"]
     API["FastAPI POST /text-to-sql"]
-    
-    subgraph "Application Orchestrator"
-        Service["GenerateAndExecuteQueryService"]
-    end
-    
-    subgraph "Conversational Payload"
-        Payload["chat_history & RLS Context"]
-    end
-    
-    subgraph "Knowledge & Generation Context"
-        Schema["StaticSchemaProvider (Tables/Columns)"]
-        VectorDB[("FAISS / Bedrock Vector DB")]
-        LLM_Gen{{"LLM: Text-to-SQL Generator"}}
-    end
-    
-    subgraph "Security Validation (sqlglot AST)"
-        Validator["SimpleSqlValidator"]
-    end
-    
-    subgraph "Execution & Self-Correction"
-        Executor[("MySQL / AWS RDS Database")]
-        LLM_Fix{{"LLM: SQL Fixer (Retry Loop)"}}
-    end
-    
-    subgraph "Presentation"
-        Summarizer{{"LLM: Result Summarizer"}}
-    end
+    Service["GenerateAndExecuteQueryService"]
+    Payload["chat_history & RLS Context"]
+
+    Schema["StaticSchemaProvider (Tables/Columns)"]
+    VectorDB[("FAISS / Bedrock Vector DB")]
+    LLM_Gen{{"LLM: Text-to-SQL Generator"}}
+
+    Validator["SimpleSqlValidator (sqlglot AST)"]
+    Executor[("MySQL / AWS RDS Database")]
+    LLM_Fix{{"LLM: SQL Fixer"}}
+
+    Summarizer{{"LLM: Result Summarizer"}}
+    Watcher{{"LLM: Watcher Agent"}}
 
     %% Flow
-    User -- "1. Asks Question" --> UI
-    UI -- "2. HTTP Request + chat_history" --> API
+    User --> UI
+    UI --> API
     API --> Payload
     Payload --> Service
-    
-    Service -- "3a. Fetch Structure" --> Schema
-    Service -- "3b. Semantic Search" --> VectorDB
-    Schema -.-> LLM_Gen
-    VectorDB -. "Schema & Synonyms" .-> LLM_Gen
-    
-    Service -- "4. Generate SQL" --> LLM_Gen
-    LLM_Gen -- "Draft SQL" --> Service
-    
-    Service -- "5. Secures SQL" --> Validator
-    Validator -- "AST Validated & RLS Injected" --> Service
-    
-    Service -- "6. Executes Query" --> Executor
-    
-    %% Self Correction Loop
-    Executor -- "7a. Syntax Error" --> LLM_Fix
-    LLM_Fix -- "Corrected SQL" --> Validator
-    
-    %% Success Path
-    Executor -- "7b. Success (Data Rows)" --> Service
-    
-    Service -- "8a. Summarize Results & Chart Spec" --> Summarizer
-    Summarizer -- "Draft Summary + Vega-Lite JSON" --> Service
-    
-    Service -- "8b. QA Compliance Review" --> Watcher[{"LLM: Watcher Agent"}]
-    Watcher -- "Approved or Corrected Text" --> Service
-    
-    Service -- "9. JSON Response (Summary + Chart)" --> API
-    API --> UI
-    UI -- "10. Polite Answer + Visuals" --> User
 
-    %% Styling
-    classDef llm fill:#f9d0c4,stroke:#333,stroke-width:2px;
-    classDef db fill:#c4ddf9,stroke:#333,stroke-width:2px;
-    classDef core fill:#d4edda,stroke:#333,stroke-width:2px;
-    classDef security fill:#fff3cd,stroke:#333,stroke-width:2px;
-    
-    class LLM_Gen,LLM_Fix,Summarizer llm;
-    class Executor,VectorDB db;
-    class Service core;
-    class Validator security;
+    Service --> Schema
+    Service --> VectorDB
+    Schema --> LLM_Gen
+    VectorDB --> LLM_Gen
+
+    Service --> LLM_Gen
+    LLM_Gen --> Service
+
+    Service --> Validator
+    Validator --> Executor
+
+    %% Retry Loop
+    Executor --> LLM_Fix
+    LLM_Fix --> Validator
+
+    Executor --> Service
+
+    Service --> Summarizer
+    Summarizer --> Service
+
+    Service --> Watcher
+    Watcher --> Service
+
+    Service --> API
+    API --> UI
+    UI --> User
 ```
 
 ### Step-by-Step Component Breakdown

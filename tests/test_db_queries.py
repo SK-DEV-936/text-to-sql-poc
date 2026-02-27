@@ -3,7 +3,7 @@ import mysql.connector
 from datetime import datetime
 from boons_text_to_sql_agent.config import load_settings
 
-def run_test_queries():
+def test_db_queries():
     settings = load_settings()
     
     print(f"Connecting to MySQL Database at {settings.db_host}:{settings.db_port}...")
@@ -72,4 +72,4 @@ def run_test_queries():
     conn.close()
 
 if __name__ == "__main__":
-    run_test_queries()
+    test_db_queries()

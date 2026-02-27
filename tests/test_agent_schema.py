@@ -5,7 +5,9 @@ from boons_text_to_sql_agent.domain import Question, Scope, Role
 from boons_text_to_sql_agent.infrastructure.llm.langchain_text_to_sql import LangChainTextToSqlAdapter
 from boons_text_to_sql_agent.infrastructure.schema.static_schema_provider import StaticSchemaProvider
 
-async def main():
+import pytest
+@pytest.mark.asyncio
+async def test_agent_schema():
     settings = load_settings()
     llm_agent = LangChainTextToSqlAdapter(settings)
     schema_provider = StaticSchemaProvider()
@@ -57,4 +59,4 @@ async def main():
             print(f"Error: {e}")
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(test_agent_schema())

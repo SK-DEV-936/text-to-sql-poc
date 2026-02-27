@@ -12,6 +12,7 @@ class PromptSettings(BaseModel):
     base_system_prompt: str
     summarization_prompt: str = ""
     fix_sql_prompt: str = ""
+    intent_gatekeeper_prompt: str = ""
     few_shot_examples: str = ""
     role_contexts: Dict[str, str]
 
