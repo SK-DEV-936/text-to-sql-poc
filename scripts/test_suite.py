@@ -76,7 +76,22 @@ TEST_CASES = [
     TestCase("Total system cancellations by month for 2026", Role.INTERNAL, []),
     TestCase("List all merchants with zero orders today", Role.INTERNAL, []),
     TestCase("Compare revenue of merchant 1 and merchant 2", Role.INTERNAL, []),
-    TestCase("Show me revenue for merchant 999", Role.INTERNAL, [])
+    TestCase("Show me revenue for merchant 999", Role.INTERNAL, []),
+    
+    # --- EXPANDED COVERAGE: TEMPORAL & AGGREGATION ---
+    TestCase("What time of day do I get the most orders?", Role.MERCHANT, [1]),
+    TestCase("Are my weekend sales better than my weekday sales?", Role.MERCHANT, [1]),
+    TestCase("Show me the month-over-month growth of my revenue for the last 3 months", Role.MERCHANT, [1]),
+    TestCase("Which week this year had the lowest revenue?", Role.MERCHANT, [1]),
+    TestCase("What is the average number of items per order?", Role.MERCHANT, [1]),
+    
+    # --- EXPANDED COVERAGE: EDGE CASES & NEGATIVE SCENARIOS ---
+    TestCase("Show me all orders where the customer paid exactly $0.00", Role.INTERNAL, []),
+    TestCase("Which menu item has never been ordered by any merchant?", Role.INTERNAL, []),
+    TestCase("List the top 3 merchants who have issued the most refunds", Role.INTERNAL, []),
+    TestCase("How many orders were delayed by more than 30 minutes?", Role.INTERNAL, []),
+    TestCase("What percentage of my total orders are cancelled?", Role.MERCHANT, [1]),
+    TestCase("Did I have any catering orders on Thanksgiving of last year?", Role.MERCHANT, [1])
 ]
 
 async def run_test_suite():

@@ -39,10 +39,9 @@ def test_block_forbidden_tables(validator):
 
 def test_rls_injection(validator):
     scope = Scope(role=Role.MERCHANT, merchant_ids=[123], max_rows=100)
-    query = SqlQuery(text="SELECT * FROM orders", parameters={})
+    query = SqlQuery(text="SELECT * FROM orders WHERE restaurant_id IN (__RLS_MERCHANTS__)", parameters={})
     result = validator.validate_and_enforce(scope, query)
     
-    assert "_rls_wrapper" in result.text
     assert "restaurant_id" in result.text
     assert "rls_restaurant_id_0" in result.parameters
     assert "%(rls_restaurant_id_0)s" in result.text

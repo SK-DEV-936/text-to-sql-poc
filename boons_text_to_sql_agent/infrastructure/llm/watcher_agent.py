@@ -107,10 +107,28 @@ class LlmWatcherAgent:
                 import logging
                 logger = logging.getLogger(__name__)
                 logger.warning(f"Watcher Agent intercepted unsafe response. Reason: {response.reasoning}")
-                # We log the warning, but we intentionally pass through the original draft summary.
-                # Attempting to have the Watcher auto-correct the text frequently results in 
-                # conversational artifacts ("The correct revenue is...") and breaks markdown.
-                return draft_summary
+                
+                if response.corrected_text:
+                    # Strip any common LLM conversational prefixes that violate instructions
+                    cleaned_text = response.corrected_text
+                    prefixes_to_strip = [
+                        "the corrected text is:",
+                        "correction:",
+                        "revised summary:",
+                        "here is the fixed text:",
+                        "here is the corrected text:"
+                    ]
+                    lower_text = cleaned_text.lower()
+                    for prefix in prefixes_to_strip:
+                        if lower_text.startswith(prefix):
+                            cleaned_text = cleaned_text[len(prefix):].strip()
+                    
+                    if cleaned_text:
+                        return cleaned_text
+                
+                # If the Watcher Agent flagged it but failed to provide safe corrected text
+                logger.error("Watcher Agent failed to provide a safe corrected response. Falling back to generic safety message.")
+                return "I apologize, but I am unable to summarize that specific data due to security or formatting constraints. Please try rephrasing your request."
                 
             return draft_summary
             

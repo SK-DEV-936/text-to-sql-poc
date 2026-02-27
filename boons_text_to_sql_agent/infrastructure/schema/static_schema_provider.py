@@ -14,23 +14,60 @@ class StaticSchemaProvider(SchemaProviderPort):
             "tables": {
                 "orders": {
                     "description": "Regular food orders placed in the system",
-                    "columns": ["id", "code", "customer_id", "total_menu_price", "grand_total", "order_status", "created_date"]
+                    "columns": {
+                        "id": "Primary key identifier",
+                        "code": "Unique public order reference code",
+                        "customer_id": "Identifier of the customer who placed the order",
+                        "total_menu_price": "Total price of all food items in the order before taxes or fees",
+                        "grand_total": "Final amount paid by customer including all fees, taxes, and tips",
+                        "order_status": "Current logical state of the order (e.g., 'completed', 'canceled')",
+                        "created_date": "Timestamp indicating when the order was placed"
+                    }
                 },
                 "order_details": {
                     "description": "Line items for regular food orders",
-                    "columns": ["id", "order_code", "menu_name", "quantity", "restaurant_id", "total"]
+                    "columns": {
+                        "id": "Primary key identifier for the order detail line",
+                        "order_code": "Foreign key linking to the parent order code",
+                        "menu_name": "Name of the food item ordered",
+                        "quantity": "Number of servings or items ordered",
+                        "restaurant_id": "Identifier for the restaurant preparing the item",
+                        "total": "Total calculated price for this specific line item"
+                    }
                 },
                 "catering_orders": {
                     "description": "Catering food orders placed in the system",
-                    "columns": ["id", "code", "customer_id", "total_menu_price", "grand_total", "order_status", "created_date"]
+                    "columns": {
+                        "id": "Primary key identifier",
+                        "code": "Unique public order reference code for catering",
+                        "customer_id": "Identifier of the customer who placed the catering order",
+                        "total_menu_price": "Total price of all catering food items",
+                        "grand_total": "Final exact amount paid including catering fees and taxes",
+                        "order_status": "Current logical state of the catering order",
+                        "created_date": "Timestamp indicating when the catering order was placed"
+                    }
                 },
                 "catering_order_details": {
                     "description": "Line items for catering food orders",
-                    "columns": ["id", "order_code", "menu_name", "quantity", "restaurant_id", "total"]
+                    "columns": {
+                        "id": "Primary key identifier for the catering order detail line",
+                        "order_code": "Foreign key linking to the parent catering order code",
+                        "menu_name": "Name of the catering food item or package ordered",
+                        "quantity": "Number of catering item units ordered",
+                        "restaurant_id": "Identifier for the restaurant preparing the catering item",
+                        "total": "Total calculated price for this catering line item"
+                    }
                 },
                 "order_history": {
                     "description": "Audit trails and lifecycle events of all types of orders.",
-                    "columns": ["id", "order_id", "process_by", "particulars", "time_format", "created_data"]
+                    "columns": {
+                        "id": "Primary key identifier for the history record",
+                        "order_id": "Foreign key linking to the parent order code (regular or catering)",
+                        "process_by": "Name or identifier of the user/system that processed the action",
+                        "particulars": "Details or notes about the lifecycle event",
+                        "time_format": "Unix timestamp representation of the event time",
+                        "created_data": "Standard datetime timestamp when the event was recorded"
+                    }
                 }
             },
             "relationships": [

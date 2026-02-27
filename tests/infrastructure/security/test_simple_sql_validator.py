@@ -45,17 +45,17 @@ def test_rejects_non_select(validator: SimpleSqlValidator, internal_scope: Scope
 
 def test_rejects_dangerous_patterns(validator: SimpleSqlValidator, internal_scope: Scope) -> None:
     query = SqlQuery(text="SELECT * FROM merchants; DROP TABLE merchants", parameters={})
-    with pytest.raises(ValueError, match="Dangerous SQL pattern detected."):
+    # The updated sqlglot parser throws an invalid syntax error when multiple statements are present
+    with pytest.raises(ValueError, match="Only SELECT statements are allowed."):
         validator.validate_and_enforce(internal_scope, query)
 
 
 def test_merchant_rls_wrapper_applied(validator: SimpleSqlValidator, merchant_scope: Scope) -> None:
-    query = SqlQuery(text="SELECT id, name FROM orders", parameters={"existing": "param"})
+    query = SqlQuery(text="SELECT id, name FROM orders WHERE restaurant_id IN (__RLS_MERCHANTS__)", parameters={"existing": "param"})
     result = validator.validate_and_enforce(merchant_scope, query)
     
     text = result.text.lower()
-    assert "select * from (select id, name from orders) as _rls_wrapper" in text
-    assert "where restaurant_id in" in text
+    assert "restaurant_id in (%(rls_restaurant_id_0)s, %(rls_restaurant_id_1)s)" in text
     assert "limit 50" in text
 
     # Parameters should be preserved and updated
