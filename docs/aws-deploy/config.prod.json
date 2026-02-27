@@ -1,0 +1,25 @@
+{
+    "environment": "prod",
+    "aws_region": "us-east-1",
+    "vpc_config": {
+        "subnet_ids": [
+            "",
+            ""
+        ],
+        "security_group_ids": [
+            ""
+        ]
+    },
+    "database_config": {
+        "rds_host": "",
+        "rds_port": 3306,
+        "rds_user_secret_arn": "",
+        "database_name": "boons_prod"
+    },
+    "iam_config": {
+        "bedrock_role_arn": ""
+    },
+    "api_gateway_config": {
+        "existing_api_gateway_id": ""
+    }
+}
