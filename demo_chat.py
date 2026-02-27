@@ -170,7 +170,7 @@ with st.expander("⚙️ User Context / Settings"):
     with col1:
         role = st.selectbox("User Role", ["internal", "merchant"], index=0 if st.session_state.context_role == "internal" else 1)
     with col2:
-        merchant_ids_str = st.text_input("Merchant IDs (comma separated)", value=st.session_state.context_merchant_ids)
+        merchant_ids_str = st.text_input("Merchant IDs (comma separated)", value=st.session_state.context_merchant_ids, disabled=(role == "internal"))
         if role == "merchant":
             st.caption("Required for the 'merchant' role to enforce Row-Level Security.")
     with col3:
