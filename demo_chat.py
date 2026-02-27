@@ -1,20 +1,77 @@
 
 import requests
 import streamlit as st
+import pandas as pd
 
 # FastAPI backend URL
 API_URL = "http://localhost:8000/text-to-sql/"
 
-st.set_page_config(page_title="boons analytics AI agent", page_icon="🤖", layout="wide")
-st.title("boons analytics AI agent 🤖")
+st.set_page_config(page_title="Boons Analytics AI", page_icon="🤖", layout="wide", initial_sidebar_state="expanded")
 
-with st.expander("ℹ️ How it works", expanded=False):
-    st.markdown("""
-    Type a natural question about your orders or restaurant, 
-    and the AI agent will securely analyze your data.
-    """)
+# ==========================================
+# CUSTOM CSS INJECTION
+# ==========================================
+st.markdown("""
+<style>
+/* Base Fonts & Colors */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
 
-# Sidebar for Configuration
+html, body, [class*="css"]  {
+    font-family: 'Inter', sans-serif;
+}
+
+/* Adjust top padding so UI is tighter to the top */
+.block-container {
+    padding-top: 1.5rem !important;
+    padding-bottom: 2rem !important;
+    max-width: 95% !important;
+}
+
+/* Chat Input Styling */
+[data-testid="stChatInput"] {
+    border-radius: 12px;
+}
+
+/* Sidebar Customization */
+[data-testid="stSidebar"] {
+    background-color: #f8f9fa;
+    border-right: 1px solid #e9ecef;
+}
+
+/* Metric / Canvas Cards */
+.canvas-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    border: 1px solid #edf2f7;
+    margin-bottom: 1rem;
+}
+
+/* Chat bubble styling for user */
+[data-testid="stChatMessage"]:has([data-testid="stMarkdownContainer"] > div > span > strong:contains("user")) {
+    background-color: #f0f7ff !important;
+    border-radius: 12px;
+    padding: 10px 15px;
+}
+
+/* Hide Streamlit branding */
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+
+</style>
+""", unsafe_allow_html=True)
+
+
+# ==========================================
+# STATE MANAGEMENT
+# ==========================================
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+if "canvas_data" not in st.session_state:
+    st.session_state.canvas_data = None  # To hold {"type": "chart"|"table"|"text", "data": ...}
+
+# Sidebar settings setup
 st.sidebar.header("User Context")
 role = st.sidebar.selectbox("User Role", ["internal", "merchant"], index=0)
 
@@ -23,17 +80,14 @@ if role == "merchant":
     merchant_ids_str = st.sidebar.text_input("Merchant IDs (comma separated)", value="1, 2")
     st.sidebar.caption("Required for the 'merchant' role to enforce Row-Level Security.")
 
-# Initialize chat history and context tracking
-if "messages" not in st.session_state:
-    st.session_state.messages = []
 if "context_role" not in st.session_state:
     st.session_state.context_role = role
 if "context_merchant_ids" not in st.session_state:
     st.session_state.context_merchant_ids = merchant_ids_str
 
-# Clear history if context changes or button clicked
 def clear_chat():
     st.session_state.messages = []
+    st.session_state.canvas_data = None
     st.session_state.context_role = role
     st.session_state.context_merchant_ids = merchant_ids_str
 
@@ -44,44 +98,6 @@ if st.sidebar.button("🗑️ Clear Chat History", use_container_width=True):
 if st.session_state.context_role != role or st.session_state.context_merchant_ids != merchant_ids_str:
     clear_chat()
 
-# Display chat messages from history on app rerun
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        if message["role"] == "user":
-            st.markdown(message["content"])
-        else:
-            # Display assistant response
-            if "error" in message:
-                st.error(message["error"])
-            else:
-                if message.get("final_sql") is None:
-                    # It's a conversation message
-                    if "summary" in message and message["summary"]:
-                        st.markdown(message["summary"])
-                else:
-                    if "summary" in message and message["summary"]:
-                        st.markdown(message['summary'])
-                    if message.get("chart_spec"):
-                        # Use width='stretch' to avoid deprecation warning
-                        st.vega_lite_chart(message["chart_spec"], width="stretch")
-                    elif message.get("rows") and len(message["rows"]) > 1:
-                        st.dataframe(message["rows"], use_container_width=True)
-
-# Define Quick Insights based on Role
-merchant_insights = [
-    "What are my top 5 selling items overall?",
-    "Compare total revenue of catering vs regular orders.",
-    "Show me all cancelled orders.",
-    "What is the total revenue for today?"
-]
-
-internal_insights = [
-    "Show me the top 5 highest-earning merchants today.",
-    "What is the overall order cancellation rate?",
-    "Compare total revenue of catering vs regular orders.",
-    "What are the most popular menu items across all restaurants?"
-]
-
 def parse_merchant_ids(ids_str):
     if not ids_str.strip():
         return []
@@ -91,128 +107,187 @@ def parse_merchant_ids(ids_str):
         st.sidebar.error("Invalid Merchant IDs. Please enter comma-separated numbers.")
         return []
 
-# React to user input or pre-selected button
-chat_input = st.chat_input("Ask a question about your data...")
-question = None
+# Define Quick Insights based on Role
+merchant_insights = [
+    "What are my top 5 selling items overall?",
+    "Show me all cancelled orders.",
+    "What is the total revenue for today?"
+]
 
-# Handle Empty State / Welcome Screen
-if len(st.session_state.messages) == 0:
-    st.markdown("### Welcome to your Analytics Assistant! 👋")
-    st.markdown("Type a custom question below or expand the **Quick Insights** for suggestions.")
+internal_insights = [
+    "Show me the top 5 highest-earning merchants today.",
+    "What is the overall order cancellation rate?",
+    "What are the most popular menu items across all restaurants?"
+]
+
+# ==========================================
+# UI LAYOUT: TWO PANES
+# ==========================================
+st.markdown("## Boons Analytics AI 🤖")
+
+chat_col, canvas_col = st.columns([1, 2.2], gap="large")
+
+# ------------------------------------------
+# LEFT PANE: CHAT INTERFACE
+# ------------------------------------------
+with chat_col:
+    st.markdown("#### Conversation")
     
-    # Auto-run a Daily Briefing if history is empty
-    with st.spinner("Preparing your daily briefing..."):
+    # Render chat history
+    chat_container = st.container(height=600)
+    with chat_container:
+        # Handle Empty State / Welcome Screen
+        if len(st.session_state.messages) == 0:
+            st.markdown("👋 **Welcome!** Ask a question about your data to get started.")
+            
+            # Quick Insights Buttons
+            st.markdown("##### Quick Insights")
+            insights_to_show = merchant_insights if role == "merchant" else internal_insights
+            for i, insight in enumerate(insights_to_show):
+                if st.button(f"💡 {insight}", key=f"btn_{i}", use_container_width=True):
+                    # Set a temporary thought variable to trigger chat
+                    st.session_state.prompt = insight
+                    st.rerun()
+
+        for message in st.session_state.messages:
+            with st.chat_message(message["role"]):
+                if message["role"] == "user":
+                    st.markdown(message["content"])
+                else:
+                    if "error" in message:
+                        st.error(message["error"])
+                    else:
+                        st.markdown(message.get("summary", "I processed that request."))
+                        # Provide a link/indicator if this created a visual
+                        if message.get("has_visual"):
+                            st.caption("➡️ _Visual generated on Canvas_")
+
+    # Chat Input
+    chat_input = st.chat_input("Ask a question...")
+    
+    # Check if a fast-insight button was clicked
+    if getattr(st.session_state, "prompt", None):
+        chat_input = st.session_state.prompt
+        del st.session_state.prompt
+
+    if chat_input:
+        # Append User Message
+        st.session_state.messages.append({"role": "user", "content": chat_input})
+        with chat_container:
+            with st.chat_message("user"):
+                st.markdown(chat_input)
+                
+        # Prepare Payload
         merchant_ids = parse_merchant_ids(merchant_ids_str) if role == "merchant" else []
-        briefing_payload = {
+        history_to_send = st.session_state.messages[-6:-1]
+        chat_history = []
+        for m in history_to_send:
+            if m["role"] == "user":
+                chat_history.append({"role": "user", "content": m["content"]})
+            elif m["role"] == "assistant" and m.get("summary"):
+                chat_history.append({"role": "assistant", "content": m["summary"]})
+                
+        payload = {
             "role": role,
             "merchant_ids": merchant_ids,
-            "question": "Give me a brief summary of today's total revenue and total orders.",
-            "chat_history": []
+            "question": chat_input,
+            "chat_history": chat_history
         }
-        try:
-            briefing_res = requests.post(API_URL, json=briefing_payload)
-            if briefing_res.status_code == 200:
-                brief_data = briefing_res.json()
-                st.info(f"**Today's Briefing:** {brief_data.get('summary', 'No activity today.')}")
-        except Exception:
-            pass # Fail silently if backend is still booting
 
-# Persistent Quick Insights Expander
-with st.expander("💡 Quick Insights", expanded=(len(st.session_state.messages) == 0)):
-    insights_to_show = merchant_insights if role == "merchant" else internal_insights
-    col1, col2 = st.columns(2)
-    for i, insight in enumerate(insights_to_show):
-        target_col = col1 if i % 2 == 0 else col2
-        # Use width='stretch' to avoid deprecation warning
-        if target_col.button(insight, width="stretch", key=f"btn_{i}"):
-            question = insight
-
-# If user typed something, override question
-if chat_input:
-    question = chat_input
-
-if question:
-    # Display user message in chat message container
-    with st.chat_message("user"):
-        st.markdown(question)
-    
-    # Add user message to chat history
-    st.session_state.messages.append({"role": "user", "content": question})
-
-    # Prepare Payload
-    merchant_ids = parse_merchant_ids(merchant_ids_str) if role == "merchant" else []
-    
-    # Extract last 5 messages for context, excluding the current question (just added)
-    history_to_send = st.session_state.messages[-6:-1]
-    chat_history = []
-    for m in history_to_send:
-        if m["role"] == "user":
-            chat_history.append({"role": "user", "content": m["content"]})
-        elif m["role"] == "assistant" and m.get("summary"):
-            chat_history.append({"role": "assistant", "content": m["summary"]})
-            
-    payload = {
-        "role": role,
-        "merchant_ids": merchant_ids,
-        "question": question,
-        "chat_history": chat_history
-    }
-
-    # Display assistant response in chat message container
-    with st.chat_message("assistant"):
-        with st.spinner("Analyzing your data..."):
-            try:
-                response = requests.post(API_URL, json=payload)
-                if response.status_code == 200:
-                    data = response.json()
-                    
-                    # Display conversational message if no SQL was generated
-                    if data.get("final_sql") is None:
-                        summary_text = data.get("summary") or "Okay, I wasn't sure how to respond to that."
-                        st.markdown(summary_text)
-                        
-                        st.session_state.messages.append({
-                            "role": "assistant",
-                            "summary": summary_text,
-                            "final_sql": None,
-                            "rows": None
-                        })
-                    else:
-                        if data.get("summary"):
-                            st.markdown(data['summary'])
+        with chat_container:
+            with st.chat_message("assistant"):
+                with st.status("Analyzing Request...", expanded=True) as status:
+                    st.write("Connecting to AI Agent...")
+                    try:
+                        response = requests.post(API_URL, json=payload)
+                        if response.status_code == 200:
+                            data = response.json()
+                            status.update(label="Complete!", state="complete", expanded=False)
                             
-                        chart_spec = data.get("chart_spec")
-                        if chart_spec:
-                            # Inject the row data into the Vega-Lite spec
-                            chart_spec["data"] = {"values": data["rows"]}
-                            # Use width='stretch' to avoid deprecation warning
-                            st.vega_lite_chart(chart_spec, width="stretch")
-                        elif data.get("rows") and len(data["rows"]) > 1:
-                            st.dataframe(data["rows"], use_container_width=True)
+                            summary_text = data.get("summary") or "Okay, I processed your request."
+                            st.markdown(summary_text)
+
+                            # Determine what to show on Canvas
+                            has_visual = False
+                            if data.get("chart_spec"):
+                                chart_spec = data["chart_spec"]
+                                chart_spec["data"] = {"values": data["rows"]}
+                                st.session_state.canvas_data = {"type": "chart", "spec": chart_spec, "title": chat_input}
+                                has_visual = True
+                            elif data.get("rows") and len(data["rows"]) > 1:
+                                st.session_state.canvas_data = {"type": "table", "data": data["rows"], "title": chat_input}
+                                has_visual = True
+                            elif data.get("final_sql"):
+                                # Fallback to showing raw rows if it's a single value
+                                st.session_state.canvas_data = {"type": "table", "data": data.get("rows", []), "title": chat_input}
+                                has_visual = True
                             
-                        # Add to history
-                        st.session_state.messages.append({
-                            "role": "assistant",
-                            "final_sql": data["final_sql"],
-                            "rows": data["rows"],
-                            "summary": data.get("summary"),
-                            "warnings": data.get("warnings"),
-                            "chart_spec": chart_spec
-                        })
-                else:
-                    error_msg = f"API Error {response.status_code}: {response.text}"
-                    st.error(error_msg)
-                    st.session_state.messages.append({
-                        "role": "assistant",
-                        "error": error_msg
-                    })
-            except Exception as e:
-                error_msg = f"Failed to connect to backend: {str(e)}"
-                st.error(error_msg)
-                st.session_state.messages.append({
-                    "role": "assistant",
-                    "error": error_msg
+                            st.session_state.messages.append({
+                                "role": "assistant",
+                                "summary": summary_text,
+                                "has_visual": has_visual
+                            })
+                            st.rerun()
+                        else:
+                            error_msg = f"API Error {response.status_code}: {response.text}"
+                            status.update(label="Error", state="error")
+                            st.error(error_msg)
+                            st.session_state.messages.append({"role": "assistant", "error": error_msg})
+                    except Exception as e:
+                        error_msg = f"Failed to connect to backend: {str(e)}"
+                        status.update(label="Connection Failed", state="error")
+                        st.error(error_msg)
+                        st.session_state.messages.append({"role": "assistant", "error": error_msg})
+
+
+# ------------------------------------------
+# RIGHT PANE: DATA CANVAS
+# ------------------------------------------
+with canvas_col:
+    st.markdown("#### Data Canvas")
+    
+    if st.session_state.canvas_data is None:
+        st.info("👈 Ask a question to generate charts or tables here.")
+        
+        # Optionally show a "Daily Briefing" if empty
+        if len(st.session_state.messages) == 0:
+            with st.spinner("Loading daily overview..."):
+                merchant_ids = parse_merchant_ids(merchant_ids_str) if role == "merchant" else []
+                brief_res = requests.post(API_URL, json={
+                    "role": role, 
+                    "merchant_ids": merchant_ids, 
+                    "question": "Brief summary of today's revenue and orders.", 
+                    "chat_history": []
                 })
-    
-    # Force a rerun to clean up any UI state
-    st.rerun()
+                if brief_res.status_code == 200:
+                    st.markdown("<div class='canvas-card'>", unsafe_allow_html=True)
+                    st.markdown("##### 📈 Daily Briefing")
+                    st.markdown(brief_res.json().get('summary', 'No activity today.'))
+                    st.markdown("</div>", unsafe_allow_html=True)
+
+    else:
+        # Display the current canvas data in a styled card
+        c_data = st.session_state.canvas_data
+        st.markdown("<div class='canvas-card'>", unsafe_allow_html=True)
+        st.markdown(f"##### {c_data.get('title', 'Results')}")
+        
+        if c_data["type"] == "chart":
+            st.vega_lite_chart(c_data["spec"], use_container_width=True)
+            
+            # Allow raw data toggle
+            with st.expander("Show Raw Data"):
+                df = pd.DataFrame(c_data["spec"]["data"]["values"])
+                st.dataframe(df, use_container_width=True)
+                csv = df.to_csv(index=False).encode('utf-8')
+                st.download_button("⬇️ Download CSV", csv, "chart_data.csv", "text/csv")
+                
+        elif c_data["type"] == "table":
+            df = pd.DataFrame(c_data["data"])
+            # Hide index and make it stretch
+            st.dataframe(df, use_container_width=True, hide_index=True)
+            
+            st.markdown("<br/>", unsafe_allow_html=True)
+            csv = df.to_csv(index=False).encode('utf-8')
+            st.download_button("⬇️ Download CSV", csv, "export.csv", "text/csv")
+            
+        st.markdown("</div>", unsafe_allow_html=True)
