@@ -23,16 +23,16 @@ class TestCase:
     should_pass: bool = True
 
 TEST_CASES = [
-    TestCase("How many times has user with email 'merchant@example.com' logged in?", Role.MERCHANT, [1]),
-    TestCase("What is the login frequency for all users in the last month?", Role.INTERNAL, []),
-    TestCase("Can you show me the login history for user with ID 1?", Role.MERCHANT, [1]),
-    TestCase("What are the security measures in place for user authentication?", Role.INTERNAL, [], expected_to_be_sql=False),
-    TestCase("How can I reset my password?", Role.MERCHANT, [1], expected_to_be_sql=False),
-    TestCase("What is the average number of logins per user?", Role.INTERNAL, []),
-    TestCase("What IP addresses have been used to log in by user with ID 1?", Role.MERCHANT, [1]),
-    TestCase("What happens if I enter the wrong password multiple times?", Role.MERCHANT, [1], expected_to_be_sql=False),
-    TestCase("How do I know if my account has been compromised?", Role.INTERNAL, [], expected_to_be_sql=False),
-    TestCase("List all login attempts for the last week for all users.", Role.INTERNAL, []),
+    TestCase("What is the total revenue generated from orders for merchant 1 this month?", Role.MERCHANT, [1]),
+    TestCase("How many orders were canceled by merchant 1 last week?", Role.MERCHANT, [1]),
+    TestCase("What are the top-selling items for merchant 1 in the last quarter?", Role.MERCHANT, [1]),
+    TestCase("What is the total revenue generated from all orders this month?", Role.INTERNAL, []),
+    TestCase("How many orders were canceled in the last week across all merchants?", Role.INTERNAL, []),
+    TestCase("What are the top-selling items across all merchants in the last quarter?", Role.INTERNAL, []),
+    TestCase("Can you tell me the average delivery time for orders?", Role.INTERNAL, [], expected_to_be_sql=False),
+    TestCase("What is the process for handling order cancellations?", Role.MERCHANT, [1], expected_to_be_sql=False),
+    TestCase("How do I update my payment information?", Role.MERCHANT, [1], expected_to_be_sql=False),
+    TestCase("What are the current promotions available for merchants?", Role.INTERNAL, [], expected_to_be_sql=False),
 ]
 
 async def run_test_suite():

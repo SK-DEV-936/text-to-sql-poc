@@ -12,44 +12,44 @@ from boons_text_to_sql_agent.config import Settings
 
 KNOWLEDGE_DOCS = [
     Document(
-        page_content="The 'users' table stores essential information about each user in the system. It includes a unique identifier for each user, their email address (which must be unique), a hashed password for authentication purposes, and a timestamp indicating when the user account was created.",
-        metadata={"category": "schema", "table": "users"}
+        page_content="The 'orders' table represents regular orders placed by customers. It contains various columns that provide detailed information about each order, including unique identifiers, timestamps for different stages of the order process, customer details, payment information, and status flags. This table is essential for tracking the lifecycle of an order from placement to delivery or cancellation.",
+        metadata={"category": "schema", "table": "orders"}
     ),
     Document(
-        page_content="The 'login_history' table records every login attempt made by users. Each record includes a unique identifier for the login attempt, the user identifier that links to the 'users' table, the timestamp of the login, and the IP address from which the login was made.",
-        metadata={"category": "schema", "table": "login_history"}
+        page_content="The 'order_details' table contains specific details about each item within an order. It is linked to the 'orders' table through the 'order_code' column in 'order_details' and the 'code' column in 'orders'. This relationship allows for the retrieval of detailed item information for each order, enabling comprehensive order analysis and reporting.",
+        metadata={"category": "relationship", "table": "order_details"}
     ),
     Document(
-        page_content="To join the 'login_history' table with the 'users' table, use the 'user_id' column from the 'login_history' table and the 'id' column from the 'users' table. This relationship allows you to retrieve user information alongside their login attempts.",
-        metadata={"category": "relationship", "table": "login_history"}
+        page_content="To analyze revenue, cancellations, and top-selling items, join the 'orders' table with the 'order_details' table using the condition 'order_details.order_code = orders.code'. This join allows you to aggregate order amounts and item details effectively.",
+        metadata={"category": "relationship", "table": "order_details"}
     ),
     Document(
-        page_content="When querying for user authentication data, focus on the 'users' table for user details and the 'login_history' table for login attempts. Use the 'user_id' in 'login_history' to filter records by specific users.",
-        metadata={"category": "relationship", "table": "login_history"}
+        page_content="When focusing on cancellations, filter the 'orders' table using the 'order_status' column where the status indicates cancellation (e.g., 'canceled', 'auto_canceled'). This will help in identifying all canceled orders.",
+        metadata={"category": "synonym", "table": "orders"}
     ),
     Document(
-        page_content="The term 'user authentication' can be mapped to querying the 'users' table for user details and the 'login_history' table for login attempts. This includes filtering by 'email' and 'password_hash' in the 'users' table and 'login_time' in the 'login_history' table.",
-        metadata={"category": "synonym"}
+        page_content="To calculate total revenue from orders, sum the 'grand_total' column in the 'orders' table. This provides the total income generated from all completed orders.",
+        metadata={"category": "synonym", "table": "orders"}
     ),
     Document(
-        page_content="'Login frequencies' can be analyzed by counting the number of records in the 'login_history' table grouped by 'user_id'. This will provide insights into how often each user logs in.",
-        metadata={"category": "synonym"}
+        page_content="To find the top-selling items, group the results from the 'order_details' table by the item identifier (e.g., 'item_id') and sum the 'quantity' sold. This will yield a list of items sorted by sales volume.",
+        metadata={"category": "synonym", "table": "order_details"}
     ),
     Document(
-        page_content="'Potential security issues' can be assessed by examining the 'login_history' table for unusual patterns, such as multiple failed login attempts from the same IP address or logins from unfamiliar locations. This can be done by filtering records based on 'ip_address' and 'login_time'.",
-        metadata={"category": "synonym"}
+        page_content="For tracking delivery issues, check the 'delivery_api_failed' column in the 'orders' table. A value of 'true' indicates a failure in the delivery API, which may require further investigation.",
+        metadata={"category": "synonym", "table": "orders"}
     ),
     Document(
-        page_content="To retrieve the most recent login time for each user, join the 'users' table with the 'login_history' table and select the maximum 'login_time' for each 'user_id'. This can help identify active users.",
-        metadata={"category": "synonym"}
+        page_content="To analyze the impact of discounts, filter the 'orders' table by 'coupon_amount' greater than zero. This will show all orders that utilized a discount coupon, allowing for analysis of discount effectiveness.",
+        metadata={"category": "synonym", "table": "orders"}
     ),
     Document(
-        page_content="When discussing 'user account creation', refer to the 'created_at' column in the 'users' table to filter users based on their account creation date. This can help in analyzing user growth over time.",
-        metadata={"category": "synonym"}
+        page_content="To assess the average delivery charge, calculate the average of the 'dc' (delivery charge) column in the 'orders' table. This provides insights into delivery pricing trends.",
+        metadata={"category": "synonym", "table": "orders"}
     ),
     Document(
-        page_content="To find users who have never logged in, perform a left join between the 'users' table and the 'login_history' table, filtering for users where the 'login_history.id' is NULL. This identifies users who have created accounts but have not yet logged in.",
-        metadata={"category": "synonym"}
+        page_content="To evaluate customer engagement, join the 'orders' table with the 'order_history' table using 'order_history.order_id = orders.code'. This allows for tracking repeat orders and customer behavior over time.",
+        metadata={"category": "relationship", "table": "order_history"}
     ),
 ]
 
