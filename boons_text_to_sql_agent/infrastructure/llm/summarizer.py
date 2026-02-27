@@ -37,6 +37,7 @@ class LlmSummarizer(ResultSummarizerPort):
             return ChatBedrock(
                 model_id=self._settings.bedrock_model_id,
                 region_name=self._settings.aws_region,
+                temperature=0.0,
             )
         else:
             from langchain_openai import ChatOpenAI

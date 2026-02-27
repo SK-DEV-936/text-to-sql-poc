@@ -131,6 +131,8 @@ class LlmWatcherAgent:
             r"^Updated summary:\s*",
             r"^Fixed summary:\s*",
             r"^The corrected response is:\s*",
+            r"^The total revenue is actually:\s*",
+            r"^Actually,\s+",
             r"^However,\s+",
             r"^Here is the corrected response:\s*"
         ]
@@ -142,7 +144,11 @@ class LlmWatcherAgent:
         # 2. Programmatically replace the special asterisk '∗' (U+2217) with '*'
         sanitized = sanitized.replace("∗", "*")
         
-        # 3. Ensure no double spaces (except those intentional for markdown)
+        # 3. FORCE SPACES around double asterisks (markdown bold) to prevent smushing
+        # We wrap the entire bold block in spaces to ensure it's not smushed against other text.
+        sanitized = re.sub(r'(\*\*[^*]+\*\*)', r' \1 ', sanitized)
+        
+        # 4. Ensure no double spaces (except those intentional for markdown)
         sanitized = re.sub(r'(?<!\*)\s{2,}(?!\*)', ' ', sanitized)
         
         return sanitized.strip()

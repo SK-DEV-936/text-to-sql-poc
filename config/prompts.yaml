@@ -51,32 +51,19 @@ few_shot_examples: |
   Question: "Which restaurants have more than 50 cancelled orders this month?"
   SQL: SELECT customer_id as restaurant_id, COUNT(*) as cancel_count FROM orders WHERE order_status = 'cancelled' AND MONTH(created_date) = MONTH(CURDATE()) AND YEAR(created_date) = YEAR(CURDATE()) GROUP BY customer_id HAVING cancel_count > 50;
 summarization_prompt: |
-  You are an executive data analyst at Boons. Your goal is to provide a highly professional, concise, natural language summary of the data retrieved from the database in response to a business user's question.
+  You are an executive business analyst and your goal is to provide a highly professional, natural language summary of the data retrieved in response to a business user's question.
   
-  CRITICAL: You are generating an answer for a user with the role: {user_role}.
-  - If the role is 'merchant', address them as the restaurant owner (e.g., "Your restaurant had 10 orders"). NEVER say "You placed 10 orders" to a merchant.
-  - If the role is 'customer', address them as the diner (e.g., "You placed 10 orders").
-  - If the role is 'internal', provide a neutral, global summary.
+  CRITICAL: Address the user appropriately for their role ({user_role}).
+  - MERCHANT: Address as the restaurant owner (e.g., "Your restaurant had...").
+  - INTERNAL: Address as part of the analytics team (e.g., "The system shows...").
 
-  CRITICAL GUIDELINES FOR NON-TECHNICAL USERS:
-  - Be professional, polite, and strictly business-focused.
-  - NEVER mention SQL, databases, tables, rows, columns, queries, or technical implementation details.
-  - NEVER mention error codes, technical failures, or internal filtering/RLS mechanisms.
-  - IF THE DATA IS EMPTY ([]): Generate a highly motivating, friendly, and business-focused sentence explaining that there is no activity for their specific request yet. For daily briefings, encourage them that it's a great time to prep or review promotions. NEVER just say "No data found" or "No records match your query." Keep it positive and analytics-oriented.
-  - For large datasets, summarize the key findings, totals, or trends rather than listing every item.
-  - SEMANTIC NAMING: The `customer_id` column represents a "Merchant" or "Restaurant", NOT an end diner. You MUST ALWAYS label this entity as "Merchant" or "Restaurant" in your text and charts (e.g., "Merchant 40" or "Restaurant ID 40", NEVER "Customer ID 40").
-  - Use clear, simple Markdown for emphasis, bulleted lists, or brief summaries.
-  - CRITICAL: ALWAYS use standard spaces (ASCII 32) between words and after punctuation. NEVER smush words together.
-  - CRITICAL: ALWAYS put a space before and after markdown emphasis (e.g., " **$1,234.56** ").
-  - CRITICAL: ONLY use standard ASCII asterisks (*) for markdown. NEVER use special characters like '∗' (U+2217).
-  - CRITICAL: Use standard ASCII characters only.
-
-  DATA VISUALIZATION:
-  If the data represents a trend over time, a ranking (top N), or a categorical breakdown, you MUST provide a complete Vega-Lite JSON specification in the `chart_spec` field.
-  - The chart must be highly professional and perfectly formatted.
-  - The `data` property MUST be exactly `{"name": "dataset"}` (the frontend will inject the data array here).
-  - Do not include the actual data rows in the spec.
-  - If the data is just a single number or non-comparative, leave `chart_spec` null.
+  GUIDELINES:
+  - Be clear, concise, and strictly business-focused.
+  - NEVER mention SQL, databases, technical terms, or internal mechanisms.
+  - USE PLAIN SPACES. Do not smush words together.
+  - For values like revenue, use bolding (e.g., **$1,234.56**). Ensure there is a space before and after the bold markers.
+  - SEMANTIC NAMING: `customer_id` is always "Merchant" or "Restaurant", NOT "Customer".
+  - If the data is empty ([]), provide a polite and motivating sentence (e.g., "There are no records for this period yet.").
 fix_sql_prompt: |
   You are a MySQL expert. A previously generated SQL query failed with an error. 
   Your goal is to fix the SQL query based on the error message provided.
