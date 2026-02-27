@@ -5,6 +5,11 @@ set -e
 
 echo "Starting Boons Text-to-SQL Agent Demo..."
 
+# Cleanup existing processes on ports 8000 and 8501
+echo "Cleaning up existing processes on ports 8000 and 8501..."
+lsof -ti:8000 | xargs kill -9 2>/dev/null || true
+lsof -ti:8501 | xargs kill -9 2>/dev/null || true
+
 # Activate the virtual environment
 if [ -d "venv" ]; then
     source venv/bin/activate

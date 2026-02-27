@@ -31,11 +31,18 @@ if "context_role" not in st.session_state:
 if "context_merchant_ids" not in st.session_state:
     st.session_state.context_merchant_ids = merchant_ids_str
 
-# Clear history if context changes
-if st.session_state.context_role != role or st.session_state.context_merchant_ids != merchant_ids_str:
+# Clear history if context changes or button clicked
+def clear_chat():
     st.session_state.messages = []
     st.session_state.context_role = role
     st.session_state.context_merchant_ids = merchant_ids_str
+
+if st.sidebar.button("🗑️ Clear Chat History", use_container_width=True):
+    clear_chat()
+    st.rerun()
+
+if st.session_state.context_role != role or st.session_state.context_merchant_ids != merchant_ids_str:
+    clear_chat()
 
 # Display chat messages from history on app rerun
 for message in st.session_state.messages:
@@ -55,7 +62,8 @@ for message in st.session_state.messages:
                     if "summary" in message and message["summary"]:
                         st.markdown(message['summary'])
                     if message.get("chart_spec"):
-                        st.vega_lite_chart(message["chart_spec"], use_container_width=True)
+                        # Use width='stretch' to avoid deprecation warning
+                        st.vega_lite_chart(message["chart_spec"], width="stretch")
 
 # Define Quick Insights based on Role
 merchant_insights = [
@@ -81,53 +89,58 @@ def parse_merchant_ids(ids_str):
         st.sidebar.error("Invalid Merchant IDs. Please enter comma-separated numbers.")
         return []
 
+# React to user input or pre-selected button
+chat_input = st.chat_input("Ask a question about your data...")
+question = None
+
 # Handle Empty State / Welcome Screen
-pre_selected_question = None
 if len(st.session_state.messages) == 0:
     st.markdown("### Welcome to your Analytics Assistant! 👋")
-    st.markdown("Select a quick insight below to get started, or type a custom question.")
+    st.markdown("Type a custom question below or expand the **Quick Insights** for suggestions.")
     
-    st.write("")
+    # Auto-run a Daily Briefing if history is empty
+    with st.spinner("Preparing your daily briefing..."):
+        merchant_ids = parse_merchant_ids(merchant_ids_str) if role == "merchant" else []
+        briefing_payload = {
+            "role": role,
+            "merchant_ids": merchant_ids,
+            "question": "Give me a brief summary of today's total revenue and total orders.",
+            "chat_history": []
+        }
+        try:
+            briefing_res = requests.post(API_URL, json=briefing_payload)
+            if briefing_res.status_code == 200:
+                brief_data = briefing_res.json()
+                st.info(f"**Today's Briefing:** {brief_data.get('summary', 'No activity today.')}")
+        except Exception:
+            pass # Fail silently if backend is still booting
+
+# Persistent Quick Insights Expander
+with st.expander("💡 Quick Insights", expanded=(len(st.session_state.messages) == 0)):
     insights_to_show = merchant_insights if role == "merchant" else internal_insights
-    
-    # Layout buttons in a 2x2 grid
     col1, col2 = st.columns(2)
     for i, insight in enumerate(insights_to_show):
         target_col = col1 if i % 2 == 0 else col2
-        if target_col.button(insight, use_container_width=True):
-            pre_selected_question = insight
-            
-    # Auto-run a Daily Briefing if they haven't clicked anything yet
-    if not pre_selected_question:
-        with st.spinner("Preparing your daily briefing..."):
-            merchant_ids = parse_merchant_ids(merchant_ids_str) if role == "merchant" else []
-            briefing_payload = {
-                "role": role,
-                "merchant_ids": merchant_ids,
-                "question": "Give me a brief summary of today's total revenue and total orders.",
-                "chat_history": []
-            }
-            try:
-                briefing_res = requests.post(API_URL, json=briefing_payload)
-                if briefing_res.status_code == 200:
-                    brief_data = briefing_res.json()
-                    st.info(f"**Today's Briefing:** {brief_data.get('summary', 'No activity today.')}")
-            except Exception:
-                pass # Fail silently if backend is still booting
+        # Use width='stretch' to avoid deprecation warning
+        if target_col.button(insight, width="stretch", key=f"btn_{i}"):
+            question = insight
 
-# React to user input or pre-selected button
-chat_input = st.chat_input("Ask a question about your data...")
-question = pre_selected_question or chat_input
+# If user typed something, override question
+if chat_input:
+    question = chat_input
+
 if question:
     # Display user message in chat message container
-    st.chat_message("user").markdown(question)
+    with st.chat_message("user"):
+        st.markdown(question)
+    
     # Add user message to chat history
     st.session_state.messages.append({"role": "user", "content": question})
 
     # Prepare Payload
     merchant_ids = parse_merchant_ids(merchant_ids_str) if role == "merchant" else []
     
-    # Extract last 5 messages for context, excluding the current question
+    # Extract last 5 messages for context, excluding the current question (just added)
     history_to_send = st.session_state.messages[-6:-1]
     chat_history = []
     for m in history_to_send:
@@ -153,14 +166,12 @@ if question:
                     
                     # Display conversational message if no SQL was generated
                     if data.get("final_sql") is None:
-                        if data.get("summary"):
-                            st.markdown(data["summary"])
-                        else:
-                            st.markdown("Okay, I wasn't sure how to respond to that.")
+                        summary_text = data.get("summary") or "Okay, I wasn't sure how to respond to that."
+                        st.markdown(summary_text)
                         
                         st.session_state.messages.append({
                             "role": "assistant",
-                            "summary": data.get("summary"),
+                            "summary": summary_text,
                             "final_sql": None,
                             "rows": None
                         })
@@ -172,7 +183,8 @@ if question:
                         if chart_spec:
                             # Inject the row data into the Vega-Lite spec
                             chart_spec["data"] = {"values": data["rows"]}
-                            st.vega_lite_chart(chart_spec, use_container_width=True)
+                            # Use width='stretch' to avoid deprecation warning
+                            st.vega_lite_chart(chart_spec, width="stretch")
                             
                         # Add to history
                         st.session_state.messages.append({
@@ -197,3 +209,6 @@ if question:
                     "role": "assistant",
                     "error": error_msg
                 })
+    
+    # Force a rerun to clean up any UI state
+    st.rerun()

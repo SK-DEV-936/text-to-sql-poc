@@ -43,7 +43,7 @@ class LlmSummarizer(ResultSummarizerPort):
             return ChatOpenAI(
                 model=self._settings.llm_model,
                 api_key=self._settings.llm_api_key,
-                temperature=0.7
+                temperature=0.0 # Summarizer should be deterministic to prevent formatting artifacts
             )
 
     async def summarize(self, question: Question, rows: Sequence[Mapping[str, Any]]) -> tuple[str | None, dict | None]:

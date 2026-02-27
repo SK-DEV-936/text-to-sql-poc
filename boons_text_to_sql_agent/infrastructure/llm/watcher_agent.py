@@ -79,7 +79,12 @@ class LlmWatcherAgent:
              "3. Social/Legal Safety: The response MUST be polite, professional, and free of any harmful, biased, or restricted content.\n"
              "4. Role Accuracy: The response must address the user correctly (Role: {user_role}).\n\n"
              "If the Draft Response passes all checks, set `is_safe` to true.\n"
-             "If the Draft Response fails any check, set `is_safe` to false and write the `corrected_text`."
+             "If the Draft Response fails any check, set `is_safe` to false and write the `corrected_text`.\n"
+             "CRITICAL: The `corrected_text` MUST ONLY contain the final natural language response for the user.\n"
+             "CRITICAL: DO NOT include phrases like 'However, the correct text is...', 'Correction:', or 'Revised summary:'. Just the response itself.\n"
+             "CRITICAL: Use standard ASCII characters and maintain perfect spacing. No smushed text.\n"
+             "CRITICAL: ALWAYS put a space before and after markdown emphasis (e.g., ' **$1,234.56** ').\n"
+             "CRITICAL: ONLY use standard '*' for markdown. NEVER use '∗'." 
             ),
             ("human", 
              "User Question: {question}\n"
@@ -102,12 +107,42 @@ class LlmWatcherAgent:
                 import logging
                 logger = logging.getLogger(__name__)
                 logger.warning(f"Watcher Agent intercepted unsafe response. Reason: {response.reasoning}")
-                return response.corrected_text
+                return self._sanitize_text(response.corrected_text)
                 
-            return draft_summary
+            return self._sanitize_text(draft_summary)
             
         except Exception as e:
             import logging
             logger = logging.getLogger(__name__)
             logger.error(f"Watcher Agent failed during evaluation: {e}. Falling back to draft summary.")
-            return draft_summary
+            return self._sanitize_text(draft_summary)
+
+    def _sanitize_text(self, text: str) -> str:
+        """Post-process text to remove common LLM meta-talk and formatting artifacts."""
+        if not text:
+            return text
+            
+        import re
+        
+        # 1. Remove common prefixes often hallucinated by LLMs during correction
+        prefixes_to_remove = [
+            r"^Correction:\s*",
+            r"^Revised summary:\s*",
+            r"^Updated summary:\s*",
+            r"^Fixed summary:\s*",
+            r"^The corrected response is:\s*",
+            r"^However,\s+",
+            r"^Here is the corrected response:\s*"
+        ]
+        
+        sanitized = text
+        for pattern in prefixes_to_remove:
+            sanitized = re.sub(pattern, "", sanitized, flags=re.IGNORECASE)
+            
+        # 2. Programmatically replace the special asterisk '∗' (U+2217) with '*'
+        sanitized = sanitized.replace("∗", "*")
+        
+        # 3. Ensure no double spaces (except those intentional for markdown)
+        sanitized = re.sub(r'(?<!\*)\s{2,}(?!\*)', ' ', sanitized)
+        
+        return sanitized.strip()

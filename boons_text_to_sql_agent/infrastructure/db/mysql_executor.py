@@ -136,14 +136,13 @@ class MySqlExecutor(SqlExecutorPort):
         params = sql_query.parameters or {}
         sql_text = sql_query.text
 
-        # If we have parameters, we must escape literal '%' characters as '%%' 
-        # so they aren't interpreted as missing placeholders by the driver.
-        # This is critical for queries using DATE_FORMAT(..., '%Y-%m-%d').
-        if params:
+        # If a parameters dict is provided, the driver (aiomysql/PyMySQL) will 
+        # attempt to format the SQL string using those parameters. 
+        # We must escape literal '%' characters as '%%' to avoid errors like
+        # "unsupported format character 'Y'".
+        if params is not None:
             import re
-            # Regex to find % that is NOT followed by (key)s
-            # Note: The driver uses %(name)s for named parameters.
-            # We look for % not immediately followed by ( to avoid escaping valid placeholders.
+            # Escape % that is NOT followed by (key)s
             sql_text = re.sub(r'%(?!\()', '%%', sql_text)
 
         conn = await aiomysql.connect(
@@ -158,7 +157,16 @@ class MySqlExecutor(SqlExecutorPort):
         )
         try:
             async with conn.cursor() as cursor:
-                await cursor.execute(sql_text, params)
+                # Only pass params if it's not empty, otherwise some drivers 
+                # might still attempt formatting and fail on escaped '%%'.
+                if params:
+                    await cursor.execute(sql_text, params)
+                else:
+                    # If no params, use the original (unescaped) text if possible, 
+                    # but since we already escaped it above, we should be consistent.
+                    # Actually, if params is empty, we don't need to escape.
+                    # Let's refine the logic.
+                    await cursor.execute(sql_query.text)
                 rows = await cursor.fetchall()
         finally:
             conn.close()

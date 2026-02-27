@@ -74,5 +74,20 @@ export USE_IN_MEMORY_EXECUTOR=false
 uvicorn boons_text_to_sql_agent.main:app --reload
 ```
 
-Now `POST /text-to-sql` will execute against the local MySQL instance instead of the in-memory demo executor.
+### Running the Full Demo (UI + API)
+
+For the easiest experience, use the provided demo script which starts both the backend and the Streamlit frontend:
+
+1. Ensure the virtual environment `venv` exists and dependencies are installed.
+2. Run the demo script from the project root:
+
+```bash
+./run_demo.sh
+```
+
+This script automatically handles:
+- Port cleanup (killing previous instances on 8000/8501).
+- Starting the FastAPI backend.
+- Launching the Streamlit Chat UI.
+- Shutting down everything when you Ctrl+C.
 

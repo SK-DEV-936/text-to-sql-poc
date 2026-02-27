@@ -13,6 +13,16 @@ from boons_text_to_sql_agent.domain import Question, SqlQuery
 from boons_text_to_sql_agent.infrastructure.retrieval.vector_store import get_vector_store
 
 
+class _IntentResponse(BaseModel):
+    is_analytics_related: bool = Field(
+        description="True if the user is asking about restaurant data, revenue, orders, or business analytics. False if it is general chat, jokes, or non-business topics."
+    )
+    refusal_message: str | None = Field(
+        default=None,
+        description="If is_analytics_related is False, provide a professional refusal here. Example: 'I am your dedicated Analytics Assistant...'"
+    )
+
+
 class _SqlResponse(BaseModel):
     is_sql: bool = Field(
         description="True if asking a SQL data question. False if saying hello or chatting."
@@ -42,6 +52,7 @@ class LangChainTextToSqlAdapter(TextToSqlPort):
         self._settings = settings
         self._llm = self._init_llm()
         self._vector_store = get_vector_store(settings)
+        self._intent_chain = self._build_intent_chain()
         self._chain = self._build_chain()
         self._fix_chain = self._build_fix_chain()
 
@@ -52,6 +63,7 @@ class LangChainTextToSqlAdapter(TextToSqlPort):
             return ChatBedrock(
                 model_id=self._settings.bedrock_model_id,
                 region_name=self._settings.aws_region,
+                temperature=0.0
             )
         else:
             from langchain_openai import ChatOpenAI
@@ -60,6 +72,18 @@ class LangChainTextToSqlAdapter(TextToSqlPort):
                 api_key=self._settings.llm_api_key,
                 temperature=0.0
             )
+
+    def _build_intent_chain(self) -> Runnable:
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", 
+             "You are a gatekeeper for a restaurant analytics AI.\n"
+             "Your job is to determine if the user's question is about restaurant data, revenue, orders, menu performance, or business analytics.\n"
+             "If the question is out of scope (jokes, general chat, life advice, coding, etc.), set `is_analytics_related` to False and provide a professional refusal message.\n"
+             "Refusal Message: 'I am your dedicated Analytics Assistant. I can help you with insights regarding revenue, orders, and restaurant performance, but I am unable to assist with general chat or non-business topics. How can I help you with your data today?'"
+            ),
+            ("human", "{question}")
+        ])
+        return prompt | self._llm.with_structured_output(_IntentResponse)
 
     def _build_chain(self) -> Runnable:
         from langchain_core.prompts import MessagesPlaceholder
@@ -94,6 +118,17 @@ class LangChainTextToSqlAdapter(TextToSqlPort):
     async def generate_sql(
         self, question: Question, schema_manifest: Mapping[str, Any]
     ) -> SqlQuery | str:
+        
+        # STAGE 0: Cheap Intent Classify (Gatekeeper)
+        # This saves cost by avoiding RAG and Schema serialization for junk prompts.
+        intent_res: _IntentResponse = await self._intent_chain.ainvoke({"question": question.text})
+        if not intent_res.is_analytics_related:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info(f"Gatekeeper blocked non-analytics intent: {question.text}")
+            return intent_res.refusal_message or "I am only authorized to assist with restaurant analytics data."
+
+        # STAGE 1: Data Gathering (Only for valid intense)
         schema_json = json.dumps(schema_manifest, indent=2)
         
         prompts = self._settings.prompts
@@ -116,7 +151,7 @@ class LangChainTextToSqlAdapter(TextToSqlPort):
                 elif msg.get("role") in ("assistant", "ai"):
                     history_msgs.append(AIMessage(content=msg.get("content", "")))
         
-        # Invoke the chain
+        # STAGE 2: SQL Generation
         response: _SqlResponse = await self._chain.ainvoke({
             "base_system_prompt": base_prompt,
             "role_context": role_context,

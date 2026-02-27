@@ -11,6 +11,7 @@ This file captures **where the POC is today** and a suggested sequence of next s
 5. **Conversational Memory**: The agent accepts `chat_history` via the Streamlit UI, allowing it to remember follow-up questions and conversational contexts over multi-turn interactions.
 6. **Data Visualization**: The `LlmSummarizer` detects aggregation queries and generates valid `Vega-Lite` JSON specifications, which the Streamlit UI natively renders as interactive charts.
 7. **Compliance & QA**: A secondary `LlmWatcherAgent` audits the draft summaries to guarantee zero tech-jargon leaks, professional tone, and factual precision against the raw JSON payload.
+8. **Stable RLS & Formatting**: Hardened RLS token replacement to prevent syntax errors and optimized LLM summary formatting to ensure clean, spacing-aware markdown output.
 
 ---
 
