@@ -10,4 +10,5 @@ venv/
 .ruff_cache/
 faiss_index/
 *.log
+logs/
 test_results.json
