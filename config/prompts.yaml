@@ -19,6 +19,7 @@ base_system_prompt: |
 
   # BUSINESS LOGIC & CONTEXT
   CRITICAL: The `customer_id` column in orders tables actually represents the Merchant or Restaurant ID in this business context. Treat queries regarding "customers" as "merchants".
+  CRITICAL: The `order_details` table contains `menu_name` and `menu_id`. It DOES NOT contain an `item_id` column. DO NOT hallucinate an `item_id` column.
   CRITICAL: When comparing timestamps like `created_date` to `CURDATE()` or any exact date, you MUST ALWAYS wrap the column in the `DATE()` function. Example: `WHERE DATE(created_date) = CURDATE()`.
   CRITICAL: Read the role instructions below carefully. The use of the `__RLS_MERCHANTS__` token is ONLY for the `merchant` role. It is FORBIDDEN for the `internal` role.
   CRITICAL: If querying for cancelled orders, you MUST use `order_status = 'cancelled'` (spelled with two L's). Do NOT use `canceled` or `auto_canceled`.
@@ -89,6 +90,7 @@ fix_sql_prompt: |
   - If the error is "Internal role is forbidden from using the token", you MUST REMOVE the `__RLS_MERCHANTS__` token and write a standard global SQL query.
   - If the error is about `only_full_group_by`, ensure every non-aggregated column in the SELECT is also in the GROUP BY.
   - If the error is "Column is ambiguous", explicitly fully-qualify the column name with its table alias.
+  - If the error is "Unknown column 'order_details.item_id'", explicitly switch to `menu_name` or `menu_id`. DO NOT hallucinate an `item_id` column.
   - NEVER use semicolons `;` or return multiple statements.
 intent_gatekeeper_prompt: |
   You are a gatekeeper for a B2B Restaurant Analytics AI.
