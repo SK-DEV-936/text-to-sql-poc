@@ -191,6 +191,40 @@ async def run_ingestion(schema_path: str, prompt_focus: str):
     schema_chain = schema_prompt | llm.with_structured_output(SchemaDoc)
     schema_doc = await schema_chain.ainvoke({"sql": schema_sql})
     
+    print("\n" + "="*80)
+    print("🚦 DATABASE ENGINEER REVIEW REQUIRED 🚦")
+    print("="*80)
+    
+    try:
+        with open("docs/db_engineer_guidelines.md", "r") as f:
+            print(f.read())
+    except FileNotFoundError:
+        print("WARNING: docs/db_engineer_guidelines.md not found.")
+
+    print("\n--- AI GENERATED SCHEMA DESCRIPTIONS (REVIEW CAREFULLY) ---")
+    for table in schema_doc.tables:
+        print(f"\nTable: {table.name}")
+        print(f"Description: {table.description}")
+        for col in table.columns:
+            print(f"  - {col.name}: {col.description}")
+            
+    print("\nAnalyzing SQL for ambiguous columns...")
+    review_prompt = ChatPromptTemplate.from_messages([
+        ("system", "You are a senior DB Architect. Review the following SQL schema. Based on best practices for Text-to-SQL AI, print exactly 3 critical, bulleted questions the Database Engineer needs to answer to ensure the AI doesn't hallucinate (e.g., 'Does total_amount include tax?', 'What does status=2 mean?'). Do not write introductory text, just the 3 questions."),
+        ("human", "{sql}")
+    ])
+    try:
+        review_chain = review_prompt | llm
+        review_msg = await review_chain.ainvoke({"sql": schema_sql})
+        print("\n--- CRITICAL QUESTIONS FOR THE DBA TO CONSIDER ---")
+        print(review_msg.content)
+    except Exception as e:
+        print(f"Could not generate DBA review questions: {e}")
+        
+    print("\n" + "="*80)
+    input("Press ENTER to confirm these definitions are perfect and proceed with ingestion, or Ctrl+C to abort and refine your SQL...")
+    print("="*80 + "\n")
+
     print("Safely appending new tables and relationships to static_schema_provider.py...")
     update_static_schema(schema_doc)
         

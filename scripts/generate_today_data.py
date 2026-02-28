@@ -3,12 +3,13 @@ from datetime import datetime
 import os
 
 def generate_today_sql():
-    # Base IDs (skipping further ahead to avoid today's previously inserted IDs)
-    order_id = 111000
-    order_details_id = 131000
-    catering_id = 105100
-    catering_details_id = 111000
-    history_id = 121000
+    # Generate dynamic Base IDs using current timestamp to prevent Primary Key collisions
+    base_ts = int(datetime.now().timestamp())
+    order_id = base_ts
+    order_details_id = base_ts + 100000
+    catering_id = base_ts + 200000
+    catering_details_id = base_ts + 300000
+    history_id = base_ts + 400000
     
     output_lines = ["USE boons;"]
     
