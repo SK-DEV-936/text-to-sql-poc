@@ -253,10 +253,14 @@ if st.session_state.canvas_data is None:
     if len(st.session_state.messages) == 0:
         with st.spinner("Loading daily overview..."):
             merchant_ids = parse_merchant_ids(merchant_ids_str) if role == "merchant" else []
+            
+            # Use role-appropriate language in the underlying prompt prompt
+            example_text = "Your restaurant had a total of 20 orders today, generating a revenue of $400." if role == "merchant" else "The platform had a total of 20 orders today, generating a revenue of $400."
+            
             brief_res = requests.post(API_URL, json={
                 "role": role, 
                 "merchant_ids": merchant_ids, 
-                "question": "Give me a one sentence text summary of today's total orders and total revenue. E.g: Your restaurant had a total of 20 orders today, generating a revenue of $400.", 
+                "question": f"Give me a one sentence text summary of today's total orders and total revenue. E.g: {example_text}", 
                 "chat_history": []
             })
             st.markdown("<div class='canvas-card' style='margin-top: 20px;'>", unsafe_allow_html=True)

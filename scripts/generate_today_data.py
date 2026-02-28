@@ -30,7 +30,7 @@ def generate_today_sql():
     if override_date:
         now = datetime.strptime(override_date, '%Y-%m-%d')
     else:
-        now = datetime.now()
+        now = datetime.utcnow()
         
     date_str = now.strftime('%Y-%m-%d %H:%M:%S')
     ts = int(now.timestamp())
