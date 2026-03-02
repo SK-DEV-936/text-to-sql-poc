@@ -51,6 +51,30 @@ KNOWLEDGE_DOCS = [
         page_content="To evaluate customer engagement, join the 'orders' table with the 'order_history' table using 'order_history.order_id = orders.code'. This allows for tracking repeat orders and customer behavior over time.",
         metadata={"category": "relationship", "table": "order_history"}
     ),
+    Document(
+        page_content="To calculate valid 'Realized Revenue' or 'Net Revenue', you MUST ALWAYS filter the `orders` table by `order_status = 'completed'`. You must exclude 'cancelled' or 'returned' orders unless specifically asked about them. Total Revenue is the sum of the `grand_total` column for completed orders.",
+        metadata={"category": "metric", "table": "orders"}
+    ),
+    Document(
+        page_content="If the user asks for 'catering orders', you must query the `catering_orders` and `catering_order_details` tables instead of `orders`. If the user asks for 'all orders' globally across both types, you must use a UNION ALL statement to combine data from `orders` and `catering_orders`.",
+        metadata={"category": "relationship", "table": "catering_orders"}
+    ),
+    Document(
+        page_content="To calculate the 'Preparation Time' of an order, find the difference in minutes between the `order_preparing_at` and `order_prepared_at` timestamps using TIMESTAMPDIFF(MINUTE, order_preparing_at, order_prepared_at). 'Delivery Time' is the difference between `order_pickup_at` and `order_delivered_at`.",
+        metadata={"category": "metric", "table": "orders"}
+    ),
+    Document(
+        page_content="When a user asks for 'today', filter using DATE(created_date) = CURDATE(). For 'yesterday', use DATE(created_date) = CURDATE() - INTERVAL 1 DAY. For 'this month', use MONTH(created_date) = MONTH(CURDATE()) AND YEAR(created_date) = YEAR(CURDATE()).",
+        metadata={"category": "metric", "table": "orders"}
+    ),
+    Document(
+        page_content="To analyze where orders are originating from (e.g., Web vs App vs POS), group the `orders` table by the `order_source` column.",
+        metadata={"category": "dimension", "table": "orders"}
+    ),
+    Document(
+        page_content="To find out how much money was refunded by an admin, inspect the `admin_refund` column. To see the total discount allowed, aggregate the `coupon_amount` and `admin_discount` columns.",
+        metadata={"category": "metric", "table": "orders"}
+    ),
 ]
 
 def build_index():

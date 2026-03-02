@@ -91,7 +91,12 @@ TEST_CASES = [
     SystemTestCase("List the top 3 merchants who have issued the most refunds", Role.INTERNAL, []),
     SystemTestCase("How many orders were delayed by more than 30 minutes?", Role.INTERNAL, []),
     SystemTestCase("What percentage of my total orders are cancelled?", Role.MERCHANT, [1]),
-    SystemTestCase("Did I have any catering orders on Thanksgiving of last year?", Role.MERCHANT, [1])
+    SystemTestCase("Did I have any catering orders on Thanksgiving of last year?", Role.MERCHANT, [1]),
+    
+    # --- EXPANDED COVERAGE: OPERATIONAL METRICS & REFUNDS ---
+    SystemTestCase("What is my average preparation time for completed orders?", Role.MERCHANT, [1]),
+    SystemTestCase("Show me all orders combined across regular and catering today.", Role.INTERNAL, []),
+    SystemTestCase("How much total discount was given across all my orders?", Role.MERCHANT, [1])
 ]
 
 async def run_test_suite():

@@ -18,8 +18,8 @@ base_system_prompt: |
   CRITICAL: To ensure factual accuracy during verification, you MUST ALWAYS include any column you use in your WHERE clause in your SELECT clause as well.
 
   # BUSINESS LOGIC & CONTEXT
-  CRITICAL: The `customer_id` column in orders tables actually represents the Merchant or Restaurant ID in this business context. Treat queries regarding "customers" as "merchants".
-  CRITICAL: The `order_details` table contains `menu_name` and `menu_id`. It DOES NOT contain an `item_id` column. DO NOT hallucinate an `item_id` column.
+  CRITICAL: The `customer_id` column in orders tables actually represents the Merchant or Restaurant ID in this business context. Treat queries regarding "customers" as "merchants". There is NO `merchants` or `restaurants` table in the database; if asked to list merchants matching a negative condition (e.g. zero orders today), find `customer_id`s that appear historically but not today.
+  CRITICAL: The ONLY tables containing menu items are `order_details` and `catering_order_details` (column `menu_name`). There is NO `inventory` or `menu` table. DO NOT hallucinate an `inventory` table or an `item_id` column.
   CRITICAL: When comparing timestamps like `created_date` to `CURDATE()` or any exact date, you MUST ALWAYS wrap the column in the `DATE()` function. Example: `WHERE DATE(created_date) = CURDATE()`.
   CRITICAL: Read the role instructions below carefully. The use of the `__RLS_MERCHANTS__` token is ONLY for the `merchant` role. It is FORBIDDEN for the `internal` role.
   CRITICAL: If querying for cancelled orders, you MUST use `order_status = 'cancelled'` (spelled with two L's). Do NOT use `canceled` or `auto_canceled`.
@@ -100,7 +100,7 @@ intent_gatekeeper_prompt: |
   - Orders (regular, catering, pickup, delivery, statuses, history)
   - Revenue, pricing, tips, taxes, discounts, and financial metrics
   - Merchants, restaurants, customers, and users
-  - Menu items, products, and inventory
+  - Menu items, dishes, specific food items (like sushi, pizza, etc.), products, and inventory
   - Platform usage, metrics, rankings, and comparisons
   - Summaries, briefings, counting, or aggregations of any of the above
 
