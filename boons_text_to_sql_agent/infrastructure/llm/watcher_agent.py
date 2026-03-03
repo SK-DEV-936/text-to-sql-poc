@@ -37,7 +37,7 @@ class LlmWatcherAgent:
         self._llm = self._init_llm()
 
     def _init_llm(self) -> Any:
-        if self._settings.is_aws_environment:
+        if self._settings.is_aws_environment and not self._settings.force_local_rag:
             from langchain_aws import ChatBedrock
             return ChatBedrock(
                 model_id=self._settings.bedrock_model_id,

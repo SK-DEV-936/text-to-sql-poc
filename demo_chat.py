@@ -3,10 +3,30 @@ import requests
 import streamlit as st
 import pandas as pd
 
-# FastAPI backend URL
-API_URL = "http://localhost:8000/text-to-sql/"
+BASE_API_URL = "http://localhost:8000"
+TEXT_TO_SQL_URL = f"{BASE_API_URL}/text-to-sql/"
+MERCHANTS_URL = f"{BASE_API_URL}/text-to-sql/merchants"
 
 st.set_page_config(page_title="Boons Analytics AI", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
+
+# --- ... down below ... ---
+if "context_role" not in st.session_state:
+    st.session_state.context_role = "internal"
+
+@st.cache_data(ttl=3600)
+def fetch_merchant_ids():
+    try:
+        res = requests.get(MERCHANTS_URL, timeout=5)
+        if res.status_code == 200:
+            ids = res.json()
+            ids.sort()
+            return ", ".join(str(i) for i in ids[:10]) # Default to first 10
+    except requests.exceptions.RequestException:
+        pass
+    return "1, 2"
+
+if "context_merchant_ids" not in st.session_state:
+    st.session_state.context_merchant_ids = fetch_merchant_ids()
 
 # ==========================================
 # CUSTOM CSS INJECTION - MOCKUP STYLE
@@ -257,7 +277,7 @@ if st.session_state.canvas_data is None:
             # Use role-appropriate language in the underlying prompt prompt
             example_text = "Your restaurant had a total of 20 orders today, generating a revenue of $400." if role == "merchant" else "The platform had a total of 20 orders today, generating a revenue of $400."
             
-            brief_res = requests.post(API_URL, json={
+            brief_res = requests.post(TEXT_TO_SQL_URL, json={
                 "role": role, 
                 "merchant_ids": merchant_ids, 
                 "question": f"Give me a one sentence text summary of today's total orders and total revenue. E.g: {example_text}", 
@@ -339,7 +359,7 @@ if chat_input:
     # Generate response
     with st.spinner("Analyzing your business context & gathering insights..."):
         try:
-            response = requests.post(API_URL, json=payload)
+            response = requests.post(TEXT_TO_SQL_URL, json=payload)
             if response.status_code == 200:
                 data = response.json()
                 

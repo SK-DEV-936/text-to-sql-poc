@@ -64,5 +64,13 @@ def create_router(service: GenerateAndExecuteQueryService) -> APIRouter:
             chart_spec=result.chart_spec,
         )
 
+    @router.get("/merchants", response_model=List[int])
+    async def get_merchants() -> List[int]:
+        try:
+            return await service.sql_executor.get_active_merchant_ids()
+        except Exception as exc:
+            logger.exception(f"Unexpected error fetching merchants: {exc}")
+            raise HTTPException(status_code=500, detail="Internal server error") from exc
+
     return router
 

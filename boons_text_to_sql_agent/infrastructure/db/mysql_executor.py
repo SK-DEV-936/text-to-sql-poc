@@ -112,6 +112,12 @@ class InMemoryDemoExecutor(SqlExecutorPort):
         rows = cursor.fetchall()
         return [dict(row) for row in rows]
 
+    async def get_active_merchant_ids(self) -> list[int]:
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT id FROM merchants WHERE status = 'active'")
+        rows = cursor.fetchall()
+        return [row['id'] for row in rows]
+
 
 @dataclass
 class MySqlExecutor(SqlExecutorPort):
@@ -173,5 +179,27 @@ class MySqlExecutor(SqlExecutorPort):
 
         # aiomysql.DictCursor already returns dict-like rows.
         return list(rows)
+
+    async def get_active_merchant_ids(self) -> list[int]:
+        import aiomysql  # type: ignore[import]
+
+        conn = await aiomysql.connect(
+            host=self.host,
+            port=self.port,
+            user=self.user,
+            password=self.password,
+            db=self.db_name,
+            autocommit=True,
+            connect_timeout=self.connect_timeout,
+            cursorclass=aiomysql.DictCursor,
+        )
+        try:
+            async with conn.cursor() as cursor:
+                # Get up to 50 active merchants based on orders table
+                await cursor.execute("SELECT DISTINCT customer_id FROM orders WHERE customer_id IS NOT NULL LIMIT 50")
+                rows = await cursor.fetchall()
+                return [row['customer_id'] for row in rows]
+        finally:
+            conn.close()
 
 

@@ -61,6 +61,6 @@ class AwsBedrockKbProvider(VectorStoreProvider):
         return self._retriever.invoke(query)
 
 def get_vector_store(settings: Settings) -> VectorStoreProvider:
-    if settings.is_aws_environment:
+    if settings.is_aws_environment and not settings.force_local_rag:
         return AwsBedrockKbProvider(settings)
     return LocalFaissProvider(settings)

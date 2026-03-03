@@ -10,3 +10,7 @@ class SqlExecutorPort(Protocol):
         """Execute a validated SQL query and return rows."""
         raise NotImplementedError
 
+    async def get_active_merchant_ids(self) -> list[int]:
+        """Fetch a list of active merchant IDs for testing/routing."""
+        raise NotImplementedError
+

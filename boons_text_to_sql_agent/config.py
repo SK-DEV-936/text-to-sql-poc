@@ -45,6 +45,7 @@ class Settings(BaseSettings):
     llm_model: str = "gpt-4o-mini"
     aws_region: str = "us-east-1"
     bedrock_model_id: str = "anthropic.claude-3-sonnet-20240229-v1:0"
+    force_local_rag: bool = False
 
     model_config = SettingsConfigDict(
         env_file=".env",
