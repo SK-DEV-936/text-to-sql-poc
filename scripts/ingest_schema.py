@@ -164,19 +164,18 @@ async def run_ingestion(schema_path: str, prompt_focus: str):
     print(f"Loading schema from {schema_path}...")
     with open(schema_path, "r") as f:
         schema_sql = f.read()
-
     # =========================================================================
-    # 🛡️ SECURITY GUARDRAIL: SCHEMA SANITIZATION (PII / PCI Protection)
+    # 🛡️ SECURITY GUARDRAIL: SCHEMA SANITIZATION (Sensitive Data Protection)
     # =========================================================================
     # NOTE: To prevent the LLM from ever knowing about sensitive columns 
-    # (e.g., PIC names, phone numbers, tax IDs, passwords), those columns MUST 
+    # (e.g., PIC names, phone numbers, internal metrics, passwords), those columns MUST 
     # be removed from the `schema_sql` string right here, BEFORE it is sent 
     # to the LLM for ingestion. 
     # 
     # Example logic to implement:
-    # SENSITIVE_COLS = ["pic_name", "pic_phone", "tax_id", "password"]
+    # # Remove lines explicitly tagged by the DBA as sensitive
     # clean_lines = [line for line in schema_sql.split('\n') 
-    #                if not any(sc in line.lower() for sc in SENSITIVE_COLS)]
+    #                if "-- SENSITIVE" not in line.upper()]
     # schema_sql = '\n'.join(clean_lines)
     # =========================================================================
     

@@ -22,10 +22,10 @@ The AI dynamically adjusting its context based on the user interacting with the 
 
 Beyond instructing the AI, the system enforces hard security constraints on the final SQL before execution. If a query violates a guardrail, it is rejected immediately.
 
-### Schema Ingestion Filtering (Data Privacy & PII Protection)
-To ensure the LLM never hallucinates queries against highly sensitive data (like PIC names, phone numbers, tax IDs, or passwords), the system employs **Schema Sanitization during Ingestion**.
-- **Security by Obscurity**: Before the database schema is ingested into the agent's RAG knowledge base or prompt block, specifically targeted columns are completely stripped from the schema definitions.
-- **Zero-Trust**: Because the LLM does not even know the sensitive columns like `pic_name` physically exist in the database tables, it is incapable of writing SQL queries to retrieve them. If a user asks for them, the LLM will simply state the data is unavailable.
+### Schema Ingestion Filtering (Sensitive Data Protection)
+To ensure the LLM never hallucinates queries against highly sensitive data (like PIC names, phone numbers, internal metrics, or passwords), the system employs **Schema Sanitization during Ingestion**.
+- **Security by Obscurity**: Before the database schema is ingested into the agent's RAG knowledge base or prompt block, any columns tagged as `-- SENSITIVE` by the Database Engineer are completely stripped from the schema definitions.
+- **Zero-Trust**: Because the LLM does not even know the sensitive columns physically exist in the database tables, it is incapable of writing SQL queries to retrieve them. If a user asks for them, the LLM will simply state the data is unavailable.
 
 ### Row-Level Security (RLS) via Mandatory Tokens
 - **The Magic Token (`__RLS_MERCHANTS__`)**: To prevent the AI from "guessing" IDs or hallucinating data, we use a proactive placeholder model. The AI is strictly instructed to use the string `__RLS_MERCHANTS__` in its SQL queries instead of actual numbers.

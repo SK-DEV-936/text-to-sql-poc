@@ -1,7 +1,7 @@
 CREATE TABLE users (
   id INT PRIMARY KEY AUTO_INCREMENT,
-  email VARCHAR(255) NOT NULL UNIQUE,
-  password_hash VARCHAR(255) NOT NULL,
+  email VARCHAR(255) NOT NULL UNIQUE,      -- SENSITIVE
+  password_hash VARCHAR(255) NOT NULL,     -- SENSITIVE
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -9,6 +9,6 @@ CREATE TABLE login_history (
   id INT PRIMARY KEY AUTO_INCREMENT,
   user_id INT NOT NULL,
   login_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  ip_address VARCHAR(45),
+  ip_address VARCHAR(45),                        -- SENSITIVE
   FOREIGN KEY (user_id) REFERENCES users(id)
 );
