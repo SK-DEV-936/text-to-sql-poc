@@ -207,3 +207,18 @@ def test_update_static_schema(monkeypatch):
         assert new_content.count('"dummy_inventory"') == 1
     finally:
         os.remove(mock_path)
+
+def test_sanitize_schema_sql():
+    from scripts.ingest_schema import sanitize_schema_sql
+    raw_schema = """CREATE TABLE users (
+        id INT PRIMARY KEY,
+        email VARCHAR(255), -- SENSITIVE
+        password VARCHAR(255) -- sensitive
+    );"""
+    
+    clean_schema = sanitize_schema_sql(raw_schema)
+    
+    assert "id INT PRIMARY KEY," in clean_schema
+    assert "email VARCHAR(255)" not in clean_schema
+    assert "password VARCHAR(255)" not in clean_schema
+    assert "CREATE TABLE users" in clean_schema

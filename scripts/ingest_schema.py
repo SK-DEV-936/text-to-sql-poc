@@ -160,6 +160,12 @@ def append_rag_docs(rag_doc: KnowledgeBaseDoc):
     with open(build_kb_path, "w") as f:
         f.write(code)
 
+def sanitize_schema_sql(schema_sql: str) -> str:
+    """Removes columns tagged as sensitive before LLM ingestion."""
+    clean_lines = [line for line in schema_sql.split('\n') 
+                   if "-- SENSITIVE" not in line.upper()]
+    return '\n'.join(clean_lines)
+
 async def run_ingestion(schema_path: str, prompt_focus: str):
     print(f"Loading schema from {schema_path}...")
     with open(schema_path, "r") as f:
@@ -171,12 +177,8 @@ async def run_ingestion(schema_path: str, prompt_focus: str):
     # (e.g., PIC names, phone numbers, internal metrics, passwords), those columns MUST 
     # be removed from the `schema_sql` string right here, BEFORE it is sent 
     # to the LLM for ingestion. 
-    # 
-    # Example logic to implement:
-    # # Remove lines explicitly tagged by the DBA as sensitive
-    # clean_lines = [line for line in schema_sql.split('\n') 
-    #                if "-- SENSITIVE" not in line.upper()]
-    # schema_sql = '\n'.join(clean_lines)
+    
+    schema_sql = sanitize_schema_sql(schema_sql)
     # =========================================================================
     
     settings = load_settings()
