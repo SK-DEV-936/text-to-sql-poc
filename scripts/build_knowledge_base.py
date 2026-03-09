@@ -75,6 +75,14 @@ KNOWLEDGE_DOCS = [
         page_content="To find out how much money was refunded by an admin, inspect the `admin_refund` column. To see the total discount allowed, aggregate the `coupon_amount` and `admin_discount` columns.",
         metadata={"category": "metric", "table": "orders"}
     ),
+    Document(
+        page_content="When a user asks for 'dinner orders' or 'dinner sales', this specifically means orders placed after 5 PM. You MUST filter the `orders` table using exactly `HOUR(created_date) >= 17`.",
+        metadata={"category": "synonym", "table": "orders"}
+    ),
+    Document(
+        page_content="When a user asks for 'lunch orders' or 'lunch sales', this specifically means orders placed between 11:30 AM and 3 PM. You MUST filter the `orders` table using exactly `TIME(created_date) BETWEEN '11:30:00' AND '15:00:00'`.",
+        metadata={"category": "synonym", "table": "orders"}
+    ),
 ]
 
 def build_index():
