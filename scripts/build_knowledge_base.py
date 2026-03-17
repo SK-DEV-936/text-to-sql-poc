@@ -6,7 +6,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 from langchain_core.documents import Document
 from langchain_community.vectorstores import FAISS
-from langchain_openai import OpenAIEmbeddings
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
 from boons_text_to_sql_agent.config import Settings
 
@@ -89,11 +89,14 @@ def build_index():
     print("Building local knowledge base (FAISS)...")
     settings = Settings()
     
-    if not settings.llm_api_key:
-        print("ERROR: LLM_API_KEY environment variable is missing. Cannot generate embeddings.")
+    if not settings.gemini_api_key:
+        print("ERROR: GEMINI_API_KEY environment variable is missing. Cannot generate embeddings.")
         sys.exit(1)
 
-    embeddings = OpenAIEmbeddings(api_key=settings.llm_api_key)
+    embeddings = GoogleGenerativeAIEmbeddings(
+        model="models/gemini-embedding-001",
+        google_api_key=settings.gemini_api_key
+    )
     
     # Generate vectors
     vectorstore = FAISS.from_documents(KNOWLEDGE_DOCS, embeddings)

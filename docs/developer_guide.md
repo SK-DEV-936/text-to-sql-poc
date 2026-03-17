@@ -1,7 +1,7 @@
 # Developer Environment Guide & Architecture
 
 This guide covers the local development environment for the Boons Text-to-SQL AI Agent. 
-*(For AWS Deployment, refer exclusively to `aws-deploy/eks_deployment_guide.md`)*
+*(For AWS Deployment, refer exclusively to `aws-deploy/docs/app_runner_deployment_guide.md`)*
 
 ## 1. Local Setup (Docker Compose & FAISS)
 

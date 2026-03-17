@@ -20,10 +20,9 @@ The project enforces a strict separation between **Local FAISS Generation** and 
 * **`tests/test_suite.py`**: The integration test suite.
 
 ### The AWS Execution Workload (`aws-deploy/`)
-* **`aws-deploy/eks_deployment_guide.md`**: The sole source of truth for AWS DevOps E2E deployment.
+* **`aws-deploy/docs/app_runner_deployment_guide.md`**: The sole source of truth for AWS App Runner deployment.
 * **`aws-deploy/scripts/aws_ingest_schema.py`**: The isolated AWS Bedrock schema parser. It generates raw Markdown files instead of overwriting Python.
 * **`aws-deploy/knowledge/*.md`**: The raw text rules (synced to the AWS S3 Bucket) that the Amazon Bedrock Knowledge Base automatically absorbs.
-* **`aws-deploy/k8s/`**: Environment-specific Kubernetes manifests (`deployment.yaml`, `configmap.yaml`, `secrets.yaml`).
 * **`aws-deploy/db/init/`**: Clean `orders-schema.sql` files for AWS RDS initialization.
 
 ---

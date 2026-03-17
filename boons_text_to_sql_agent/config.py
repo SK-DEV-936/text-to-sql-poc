@@ -40,9 +40,9 @@ class Settings(BaseSettings):
     db_name: str = "boons"
     use_in_memory_executor: bool = False
 
-    # LLM Settings (OpenAI for local, Bedrock for AWS)
-    llm_api_key: str = Field(default="", alias="OPENAI_API_KEY")
-    llm_model: str = "gpt-4o-mini"
+    # LLM Settings (Gemini for local, Bedrock for AWS)
+    gemini_api_key: str = Field(default="", alias="GEMINI_API_KEY")
+    llm_model: str = "gemini-2.5-pro"
     aws_region: str = "us-east-1"
     bedrock_model_id: str = "anthropic.claude-3-sonnet-20240229-v1:0"
     force_local_rag: bool = False

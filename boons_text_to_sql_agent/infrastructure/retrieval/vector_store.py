@@ -22,8 +22,11 @@ class LocalFaissProvider(VectorStoreProvider):
         self._store = self._init_store()
 
     def _init_embeddings(self) -> Embeddings:
-        from langchain_openai import OpenAIEmbeddings
-        return OpenAIEmbeddings(api_key=self._settings.llm_api_key)
+        from langchain_google_genai import GoogleGenerativeAIEmbeddings
+        return GoogleGenerativeAIEmbeddings(
+            model="models/gemini-embedding-001",
+            google_api_key=self._settings.gemini_api_key
+        )
 
     def _init_store(self) -> FAISS | None:
         if os.path.exists(self._index_path):

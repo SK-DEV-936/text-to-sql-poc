@@ -40,10 +40,10 @@ class LlmSummarizer(ResultSummarizerPort):
                 temperature=0.0,
             )
         else:
-            from langchain_openai import ChatOpenAI
-            return ChatOpenAI(
+            from langchain_google_genai import ChatGoogleGenerativeAI
+            return ChatGoogleGenerativeAI(
                 model=self._settings.llm_model,
-                api_key=self._settings.llm_api_key,
+                google_api_key=self._settings.gemini_api_key,
                 temperature=0.0 # Summarizer should be deterministic to prevent formatting artifacts
             )
 

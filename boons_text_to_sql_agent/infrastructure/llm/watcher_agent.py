@@ -45,10 +45,10 @@ class LlmWatcherAgent:
                 temperature=0.0 # Watcher should be deterministic
             )
         else:
-            from langchain_openai import ChatOpenAI
-            return ChatOpenAI(
+            from langchain_google_genai import ChatGoogleGenerativeAI
+            return ChatGoogleGenerativeAI(
                 model=self._settings.llm_model,
-                api_key=self._settings.llm_api_key,
+                google_api_key=self._settings.gemini_api_key,
                 temperature=0.0 # Watcher should be deterministic
             )
 
