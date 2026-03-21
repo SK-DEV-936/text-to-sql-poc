@@ -3,7 +3,11 @@ FROM python:3.11-slim
 # Set environment variables for Python
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-# ENVIRONMENT will be set at the service level (App Runner / ECS)
+
+# Use ARG to allow setting the environment at build time (e.g., --build-arg APP_ENV=aws-dev)
+# Default is 'local' if not provided.
+ARG APP_ENV=local
+ENV ENVIRONMENT=${APP_ENV}
 ENV FORCE_LOCAL_RAG=1
 
 WORKDIR /app

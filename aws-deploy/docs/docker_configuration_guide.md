@@ -35,7 +35,49 @@ The application's behavior is primarily controlled through environment variables
 | `FORCE_LOCAL_RAG` | `1` | Set to `0` in production to use AWS Bedrock Knowledge Base instead of local FAISS. |
 | `AWS_REGION` | `us-east-1` | The AWS region for Bedrock and Secrets Manager access. |
 | `MAX_ROWS` | `1000` | Safety limit for SQL query result rows. |
-| `USE_IN_MEMORY_EXECUTOR` | `False` | Set to `True` to use SQLite fallback for local demos without MySQL. |
+| `USE_IN_MEMORY_EXECUTOR` | `false` | If `true`, uses a local SQLite mock instead of MySQL (useful for isolated demos). |
+
+---
+
+## Environment Identification (Dev vs. Prod)
+
+The application identifies its target environment using the **`ENVIRONMENT`** environment variable. This variable is central to the "Build Once, Deploy Anywhere" philosophy.
+
+### Allowed Values
+- **`local`** (Default): Used for development on your workstation. Uses `.env` and local resources.
+- **`aws-dev`**: Used for the development/staging environment in AWS.
+- **`aws-prod`**: Used for the production environment in AWS.
+
+### How it is Used in Code
+The application uses the `Settings` class (in `boons_text_to_sql_agent/config.py`) to parse this variable.
+- **Service Switching**: If `ENVIRONMENT` starts with `aws`, the app enabled AWS-specific features like Bedrock integration.
+- **Configuration Precedence**:
+    1.  **Service Settings**: Values set in App Runner/ECS override everything else.
+    2.  **Environment Variables**: OS-level variables.
+    3.  **Local `.env`**: Only used if the file exists (typically ignored in Docker).
+    4.  **Defaults**: Hardcoded safe defaults in `config.py`.
+
+### Setting the Environment at Build Time (Automatic Preparation)
+
+If you want the Docker image to be "pre-baked" with a specific environment (so you don't have to set it in the AWS Console), you can use the **`APP_ENV`** build argument:
+
+```bash
+# To build a Dev-ready image
+docker build --build-arg APP_ENV=aws-dev -t boons-agent:dev .
+
+# To build a Prod-ready image
+docker build --build-arg APP_ENV=aws-prod -t boons-agent:prod .
+```
+
+> [!TIP]
+> This is particularly useful in **AWS CodeBuild**. You can update your `buildspec.yml` to inject the correct environment based on the branch being built.
+
+### Setting the Environment at Runtime (Manual Override)
+
+Even if the image was "pre-baked" with a default environment during build time, you can still override it at runtime (e.g., in the AWS App Runner console or ECS task definition). **Runtime injection always has the highest priority.**
+1.  Navigate to your **App Runner Service** > **Configuration**.
+2.  Under **Environment variables**, add or update the `ENVIRONMENT` key with either `aws-dev` or `aws-prod`.
+3.  Deploy the changes. The application will log its active environment on startup.
 
 ---
 
