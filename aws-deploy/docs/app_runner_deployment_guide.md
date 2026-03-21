@@ -53,11 +53,11 @@ docker push <aws_account_id>.dkr.ecr.<region>.amazonaws.com/boons-agent:latest
 ### Step 3: Secrets Injection (Crucial)
 Do **not** put sensitive keys in plaintext environment variables. Use App Runner's Secrets Manager integration:
 1. Under **Environment variables**, select **Add from Secrets Manager**.
-2. Select the secret `boons/agent/gemini-api-key` and map it to `GEMINI_API_KEY`.
+2. Select the secret `boons/agent/llm-api-key` and map it to `LLM_API_KEY`.
 3. Repeat for `DB_PASSWORD`.
 
 > [!TIP]
-> Refer to [gemini_secrets_setup.md](./gemini_secrets_setup.md) for detailed steps on setting up the secret in AWS Secrets Manager.
+> Refer to [llm_secrets_setup.md](./llm_secrets_setup.md) for detailed steps on setting up the secret in AWS Secrets Manager.
 
 ---
 

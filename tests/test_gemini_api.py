@@ -10,9 +10,9 @@ async def test_gemini_2_5_pro_connectivity():
     """Verify that the ChatGoogleGenerativeAI model can be initialized and can answer a prompt using gemini-2.5-pro."""
     
     # Check for the key first
-    api_key = os.environ.get("GEMINI_API_KEY")
+    api_key = os.environ.get("LLM_API_KEY")
     if not api_key:
-        pytest.fail("GEMINI_API_KEY environment variable is not set. Please set it to run this test.")
+        pytest.fail("LLM_API_KEY environment variable is not set. Please set it to run this test.")
 
     try:
         from langchain_google_genai import ChatGoogleGenerativeAI

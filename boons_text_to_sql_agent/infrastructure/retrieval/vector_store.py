@@ -25,7 +25,7 @@ class LocalFaissProvider(VectorStoreProvider):
         from langchain_google_genai import GoogleGenerativeAIEmbeddings
         return GoogleGenerativeAIEmbeddings(
             model="models/gemini-embedding-001",
-            google_api_key=self._settings.gemini_api_key
+            google_api_key=self._settings.llm_api_key
         )
 
     def _init_store(self) -> FAISS | None:

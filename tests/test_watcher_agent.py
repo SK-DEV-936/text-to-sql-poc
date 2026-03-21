@@ -18,7 +18,7 @@ def base_question():
 def mock_settings():
     settings = Settings()
     settings.llm_model = "test-model"
-    settings.gemini_api_key = "test-key"
+    settings.llm_api_key = "test-key"
     return settings
 
 

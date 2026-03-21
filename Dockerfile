@@ -3,7 +3,7 @@ FROM python:3.11-slim
 # Set environment variables for Python
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV ENVIRONMENT=aws-dev
+# ENVIRONMENT will be set at the service level (App Runner / ECS)
 ENV FORCE_LOCAL_RAG=1
 
 WORKDIR /app

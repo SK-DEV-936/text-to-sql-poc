@@ -89,13 +89,13 @@ def build_index():
     print("Building local knowledge base (FAISS)...")
     settings = Settings()
     
-    if not settings.gemini_api_key:
-        print("ERROR: GEMINI_API_KEY environment variable is missing. Cannot generate embeddings.")
+    if not settings.llm_api_key:
+        print("ERROR: LLM_API_KEY environment variable is missing. Cannot generate embeddings.")
         sys.exit(1)
 
     embeddings = GoogleGenerativeAIEmbeddings(
         model="models/gemini-embedding-001",
-        google_api_key=settings.gemini_api_key
+        google_api_key=settings.llm_api_key
     )
     
     # Generate vectors
