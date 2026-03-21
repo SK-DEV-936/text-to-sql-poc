@@ -3,7 +3,7 @@ import requests
 import streamlit as st
 import pandas as pd
 
-BASE_API_URL = "http://localhost:8000"
+BASE_API_URL = "http://127.0.0.1:8000"
 TEXT_TO_SQL_URL = f"{BASE_API_URL}/text-to-sql/"
 MERCHANTS_URL = f"{BASE_API_URL}/text-to-sql/merchants"
 

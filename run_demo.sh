@@ -37,7 +37,7 @@ ROOT_DIR=$(pwd)
 
 # Start the FastAPI backend in the background
 echo "Starting FastAPI backend on port 8000..."
-uvicorn boons_text_to_sql_agent.main:app --host 127.0.0.1 --port 8000 &
+uvicorn boons_text_to_sql_agent.main:app --host 0.0.0.0 --port 8000 &
 BACKEND_PID=$!
 
 # Wait briefly for the backend to initialize
