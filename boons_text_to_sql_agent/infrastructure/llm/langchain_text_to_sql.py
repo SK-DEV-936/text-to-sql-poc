@@ -67,11 +67,15 @@ class LangChainTextToSqlAdapter(TextToSqlPort):
             )
         else:
             from langchain_google_genai import ChatGoogleGenerativeAI
-            return ChatGoogleGenerativeAI(
-                model=self._settings.llm_model,
-                google_api_key=self._settings.llm_api_key,
-                temperature=0.0
-            )
+            
+            llm_kwargs = {
+                "model": self._settings.llm_model,
+                "temperature": 0.0
+            }
+            if self._settings.llm_api_key:
+                llm_kwargs["google_api_key"] = self._settings.llm_api_key
+            
+            return ChatGoogleGenerativeAI(**llm_kwargs)
 
     def _build_intent_chain(self) -> Runnable:
         

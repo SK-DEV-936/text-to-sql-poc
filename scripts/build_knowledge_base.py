@@ -90,13 +90,14 @@ def build_index():
     settings = Settings()
     
     if not settings.llm_api_key:
-        print("ERROR: LLM_API_KEY environment variable is missing. Cannot generate embeddings.")
-        sys.exit(1)
+        print("WARNING: LLM_API_KEY / GOOGLE_API_KEY / GEMINI_API_KEY environment variable is missing.")
+        print("Embeddings generation will attempt to use default environment variable lookup (GOOGLE_API_KEY).")
 
-    embeddings = GoogleGenerativeAIEmbeddings(
-        model="models/gemini-embedding-001",
-        google_api_key=settings.llm_api_key
-    )
+    embed_kwargs = {"model": "models/gemini-embedding-001"}
+    if settings.llm_api_key:
+        embed_kwargs["google_api_key"] = settings.llm_api_key
+
+    embeddings = GoogleGenerativeAIEmbeddings(**embed_kwargs)
     
     # Generate vectors
     vectorstore = FAISS.from_documents(KNOWLEDGE_DOCS, embeddings)

@@ -4,7 +4,7 @@ import os
 from typing import Dict, List, Literal
 
 import yaml
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, AliasChoices
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -41,7 +41,10 @@ class Settings(BaseSettings):
     use_in_memory_executor: bool = False
 
     # LLM Settings (Primary LLM_API_KEY for local/scripts, Bedrock for AWS)
-    llm_api_key: str = Field(default="", alias="LLM_API_KEY")
+    llm_api_key: str | None = Field(
+        default=None, 
+        validation_alias=AliasChoices("LLM_API_KEY", "GOOGLE_API_KEY", "GEMINI_API_KEY")
+    )
     llm_model: str = "gemini-2.5-pro"
     aws_region: str = "us-east-1"
     bedrock_model_id: str = "anthropic.claude-3-sonnet-20240229-v1:0"
