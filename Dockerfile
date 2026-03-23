@@ -29,7 +29,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copy the core application logic and configuration
 COPY boons_text_to_sql_agent/ boons_text_to_sql_agent/
 COPY config/ config/
-COPY scripts/ scripts/
+COPY scripts/build_knowledge_base.py scripts/
 
 # Copy FAISS index generated during CodeBuild
 # COPY faiss_index/ faiss_index/
