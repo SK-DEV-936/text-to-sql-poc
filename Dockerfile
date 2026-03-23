@@ -25,6 +25,8 @@ COPY pyproject.toml README.md ./
 # (Excludes FAISS/Pytest because they are local test/dev tools)
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir .
+    
+RUN pip install --no-cache-dir langchain-community faiss-cpu langchain-google-genai
 
 # Copy the core application logic and configuration
 COPY boons_text_to_sql_agent/ boons_text_to_sql_agent/
