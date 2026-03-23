@@ -26,7 +26,8 @@ demo.pid
 db/init/*.sql
 
 # Scripts & UI (AWS only needs the API)
-scripts/
+scripts/*
+!scripts/build_knowledge_base.py
 docs/
 aws-deploy/
 tests/
