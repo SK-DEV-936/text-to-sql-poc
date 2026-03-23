@@ -37,7 +37,9 @@ COPY scripts/build_knowledge_base.py scripts/
 # COPY faiss_index/ faiss_index/
 
 # Generate FAISS index inside Docker
-RUN python scripts/build_knowledge_base.py
+ARG LLM_API_KEY
+RUN LLM_API_KEY=$LLM_API_KEY python scripts/build_knowledge_base.py
+#RUN python scripts/build_knowledge_base.py
 
 
 # Expose the precise port for AWS Load Balancers / App Runner
