@@ -38,23 +38,35 @@ docker push <aws_account_id>.dkr.ecr.<region>.amazonaws.com/boons-agent:latest
 
 ## 3. App Runner Service Configuration
 
-### Step 1: Source & Deployment
-- **Repository type:** Container registry (Amazon ECR).
-- **Deployment settings:** Automatic or Manual (recommended for production).
+You will deploy **two** App Runner services using the exact same ECR Docker image: one for the backend API, and one for the Streamlit UI.
 
-### Step 2: Service Configuration
-- **Runtime:** Managed (Container).
-- **Port:** 8000.
-- **Environment Variables:**
-  - `ENVIRONMENT`: Set to `aws-prod` or `aws-dev`.
-  - `DB_HOST`: Your RDS endpoint.
-  - `FORCE_LOCAL_RAG`: Set to `0` for production (to use Bedrock KB).
+### Service 1: FastAPI Backend (API)
+1. **Source & Deployment:** Select your ECR repository.
+2. **Runtime & Port:** Managed Container, Port `8000`.
+3. **Start Command:** Leave blank (uses Dockerfile default `uvicorn`).
+4. **Environment Variables:**
+   - `ENVIRONMENT`: `aws-prod` or `aws-dev`
+   - `DB_HOST`: Your RDS endpoint
+   - `FORCE_LOCAL_RAG`: `0` for production
+5. **Secrets (Crucial):** Inject `LLM_API_KEY` and `DB_PASSWORD` from AWS Secrets Manager.
 
-### Step 3: Secrets Injection (Crucial)
-Do **not** put sensitive keys in plaintext environment variables. Use App Runner's Secrets Manager integration:
-1. Under **Environment variables**, select **Add from Secrets Manager**.
-2. Select the secret `boons/agent/llm-api-key` and map it to `LLM_API_KEY`.
-3. Repeat for `DB_PASSWORD`.
+### Service 2: Streamlit UI
+1. **Source & Deployment:** Select the *same* ECR repository.
+2. **Runtime & Port:** Managed Container, Port `8000`.
+3. **Start Command:** Leave blank (the `start.sh` script handles routing automatically via `RUN_UI`).
+4. **Environment Variables:**
+   - `RUN_UI`: `true` (This tells the Docker container to launch Streamlit instead of FastAPI)
+   - `API_BASE_URL`: **Set this to the App Runner URL of Service 1** (e.g., `https://<api-id>.awsapprunner.com`).
+   
+   *Example of Environment Variable Configuration (AWS CLI / CloudFormation):*
+   ```json
+   {
+       "RUN_UI": "true",
+       "API_BASE_URL": "https://abc123xyz.us-east-1.awsapprunner.com"
+   }
+   ```
+
+5. **Secrets:** (No secrets required for the UI, it communicates with the secured API).
 
 > [!TIP]
 > Refer to [llm_secrets_setup.md](./llm_secrets_setup.md) for detailed steps on setting up the secret in AWS Secrets Manager.

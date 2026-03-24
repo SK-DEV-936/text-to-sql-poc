@@ -1,9 +1,11 @@
 
+import os
 import requests
 import streamlit as st
 import pandas as pd
 
-BASE_API_URL = "http://127.0.0.1:8000"
+# Dynamic URL configuration for DevOps deployment via Docker
+BASE_API_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
 TEXT_TO_SQL_URL = f"{BASE_API_URL}/text-to-sql/"
 MERCHANTS_URL = f"{BASE_API_URL}/text-to-sql/merchants"
 

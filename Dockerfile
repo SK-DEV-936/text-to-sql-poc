@@ -47,5 +47,8 @@ RUN LLM_API_KEY=$LLM_API_KEY python scripts/build_knowledge_base.py
 # Expose the precise port for AWS Load Balancers / App Runner
 EXPOSE 8000
 
-# Start the high-performance Uvicorn server explicitly bound to 0.0.0.0
-CMD ["uvicorn", "boons_text_to_sql_agent.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Copy the dynamic entrypoint script
+COPY start.sh /app/start.sh
+
+# Start via the dynamic entrypoint (evaluates RUN_UI env variable)
+CMD ["/app/start.sh"]
