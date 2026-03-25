@@ -35,6 +35,9 @@ COPY boons_text_to_sql_agent/ boons_text_to_sql_agent/
 COPY config/ config/
 COPY scripts/build_knowledge_base.py scripts/
 
+# Copy Streamlit UI file
+COPY demo_chat.py /app/demo_chat.py
+
 # Copy FAISS index generated during CodeBuild
 # COPY faiss_index/ faiss_index/
 
