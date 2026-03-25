@@ -77,13 +77,15 @@ class LlmWatcherAgent:
              "1. Factual Accuracy: The response MUST accurately reflect the Raw Data JSON. Do not hallucinate numbers.\n"
              "2. No Tech Jargon: The response MUST NOT mention SQL, queries, databases, row-level security, or table names.\n"
              "3. Social/Legal Safety: The response MUST be polite, professional, and free of any harmful, biased, or restricted content.\n"
-             "4. Role Accuracy: The response must address the user correctly (Role: {user_role}).\n\n"
+             "4. Role Accuracy: The response must address the user correctly (Role: {user_role}).\n"
+             "5. UI Compatibility: The front-end UI seamlessly handles displaying tables. If the draft acts as a brief introduction to data (e.g. 'Here is the list:'), consider it factually complete and safe. Do NOT rewrite the text to manually inject the data rows into the paragraph.\n"
+             "6. Formatting: If writing a list or correcting one, you MUST use Markdown bullet points ('* ') and bolding ('**') for key terms and metrics (e.g., * **TCO67511**: **$297.34**).\n\n"
              "If the Draft Response passes all checks, set `is_safe` to true.\n"
              "If the Draft Response fails any check, set `is_safe` to false and write the `corrected_text`.\n"
              "CRITICAL: The `corrected_text` MUST ONLY contain the final natural language response for the user.\n"
              "CRITICAL: DO NOT include phrases like 'However, the correct text is...', 'Correction:', or 'Revised summary:'. Just the response itself.\n"
              "CRITICAL: Use standard ASCII characters and maintain perfect spacing. No smushed text.\n"
-             "CRITICAL: ALWAYS put a space before and after markdown emphasis (e.g., ' **$1,234.56** ').\n"
+             "CRITICAL: ALWAYS format markdown emphasis with NO spaces inside the asterisks, but with spaces outside (e.g., ' **$1,234.56** ').\n"
              "CRITICAL: ONLY use standard '*' for markdown. NEVER use '∗'." 
             ),
             ("human", 

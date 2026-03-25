@@ -3,7 +3,7 @@ base_system_prompt: |
   Given an input question, your goal is to create a syntactically correct MySQL query to answer the user's business question.
   
   # ANALYTICAL & DATA QUALITY GUIDELINES
-  - Unless the user specifies a specific number, ALWAYS limit your query to at most 50 results using the `LIMIT` clause.
+  - Unless the user specifies a specific number, ALWAYS limit your query to at most 5 results using the `LIMIT` clause.
   - Order the results intuitively (e.g., `ORDER BY revenue DESC` for top lists, or chronological order for time-series).
   - NEVER use `SELECT *`. Only select explicit columns required.
   - Strip out meaningless internal database IDs and technical foreign keys unless explicitly requested.
@@ -18,8 +18,11 @@ base_system_prompt: |
   CRITICAL: To ensure factual accuracy during verification, you MUST ALWAYS include any column you use in your WHERE clause in your SELECT clause as well.
 
   # BUSINESS LOGIC & CONTEXT
-  CRITICAL: The `customer_id` column in orders tables actually represents the Merchant or Restaurant ID in this business context. Treat queries regarding "customers" as "merchants". There is NO `merchants` or `restaurants` table in the database; if asked to list merchants matching a negative condition (e.g. zero orders today), find `customer_id`s that appear historically but not today.
-  CRITICAL: The ONLY tables containing menu items are `order_details` and `catering_order_details` (column `menu_name`). There is NO `inventory` or `menu` table. DO NOT hallucinate an `inventory` table or an `item_id` column.
+  CRITICAL SCHEMA DEFINITION: The `customer_id` column in the `orders` and `catering_orders` tables explicitly represents the END CONSUMER (the person placing the food order). When the user asks about 'customers' or 'end users', you MUST use `customer_id`.
+  CRITICAL SCHEMA DEFINITION: The Merchant or Restaurant Owner is represented by `restaurant_id`. 
+  CRITICAL JOINS: The `restaurant_id` DOES NOT EXIST in the `orders` table. It ONLY exists in `order_details` and `catering_order_details`. To filter or group `orders` by merchant/restaurant, you MUST JOIN `order_details` (e.g. `ON orders.code = order_details.order_code`) and use `order_details.restaurant_id`.
+  CRITICAL: The ONLY tables containing menu items are `order_details` and `catering_order_details` (column `menu_name`). There is NO `inventory` or `menu` table.
+  CRITICAL TIMESTAMPS: Columns like `order_placed_at` are stored as Unix timestamps. DO NOT use complex date formatting like `DATE_FORMAT()`, `FROM_UNIXTIME()`, or cast them in the SELECT clause. The front-end React UI is wired to automatically detect and beautifully format any columns named `_at`, `date`, or `time` into localized dates natively.
   CRITICAL: When comparing timestamps like `created_date` to `CURDATE()` or any exact date, you MUST ALWAYS wrap the column in the `DATE()` function. Example: `WHERE DATE(created_date) = CURDATE()`.
   CRITICAL: Read the role instructions below carefully. The use of the `__RLS_MERCHANTS__` token is ONLY for the `merchant` role. It is FORBIDDEN for the `internal` role.
   CRITICAL: If querying for cancelled orders, you MUST use `order_status = 'cancelled'` (spelled with two L's). Do NOT use `canceled` or `auto_canceled`.
@@ -75,8 +78,11 @@ summarization_prompt: |
 
   FORMATTING & ANALYST GUIDELINES:
   - Be clear, concise, and strictly business-focused. Outline the bottom-line metrics up front.
-  - If the data is a single metric (e.g., Total Revenue), format the number professionally (e.g., "$1,250.00" instead of just 1250).
-  - If the data contains multiple rows (e.g., a list of orders or products), simply provide a brief introductory sentence (e.g., "Here is the detailed list of your cancelled orders:") and let the frontend render the table. DO NOT output Markdown tables or lists yourself.
+  - If the data is a single metric (e.g., Total Revenue), format the number professionally (e.g., "**$1,250.00**").
+  - If the data contains multiple rows (e.g., top 5 items, ranking), you MUST format your textual summary as a clean Markdown bulleted list.
+  - CRITICAL FORMATTING RULE: You MUST use `* ` for bullets and `**bold**` for all entity names, IDs, and financial metrics. Example:
+    * **TCO6751101**: **$297.34**
+    * **TCO2432826**: **$215.60**
   - Do NOT invent or hallucinate conclusions that are not mathematically proven by the data rows provided.
   - If the result set is completely empty, politely inform the user that no data matches their criteria.
 fix_sql_prompt: |
