@@ -31,6 +31,9 @@ scripts/*
 docs/
 aws-deploy/
 tests/
-demo_chat.py
-run_demo.sh
 project_structure_plan.md
+
+# Allow UI now
+!demo_chat.py
+!run_demo.sh
+
