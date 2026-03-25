@@ -50,6 +50,7 @@ RUN LLM_API_KEY=$LLM_API_KEY python scripts/build_knowledge_base.py
 # Expose the precise port for AWS Load Balancers / App Runner
 EXPOSE 8000
 
+
 # Copy the dynamic entrypoint script
 COPY start.sh /app/start.sh
 
