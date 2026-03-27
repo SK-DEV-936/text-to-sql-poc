@@ -5,9 +5,23 @@ import streamlit as st
 import pandas as pd
 
 # Dynamic URL configuration for DevOps deployment via Docker
-BASE_API_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
+_raw_base_url = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
+
+# ENFORCEMENT: App Runner ALBs convert HTTP -> HTTPS via 301/308 redirects.
+# These redirects convert POST -> GET, causing 502s or 405s.
+# We strip trailing slashes and force https:// for *.awsapprunner.com
+BASE_API_URL = _raw_base_url.rstrip('/')
+if "awsapprunner.com" in BASE_API_URL and not BASE_API_URL.startswith("https://"):
+    BASE_API_URL = BASE_API_URL.replace("http://", "https://")
+    if not BASE_API_URL.startswith("https://"):
+        BASE_API_URL = f"https://{BASE_API_URL}"
+
 TEXT_TO_SQL_URL = f"{BASE_API_URL}/text-to-sql/"
 MERCHANTS_URL = f"{BASE_API_URL}/text-to-sql/merchants"
+
+# Production Latency Handling: LLM processing can take 30-90s.
+# App Runner proxy uses 60s by default, but our code should allow more.
+REQUEST_TIMEOUT = 120 
 
 st.set_page_config(page_title="Boons Analytics AI", page_icon="📈", layout="wide", initial_sidebar_state="expanded")
 
@@ -18,13 +32,16 @@ if "context_role" not in st.session_state:
 @st.cache_data(ttl=3600)
 def fetch_merchant_ids():
     try:
-        res = requests.get(MERCHANTS_URL, timeout=5)
+        print(f"[LOG] Fetching merchants from: {MERCHANTS_URL}")
+        res = requests.get(MERCHANTS_URL, timeout=10)
         if res.status_code == 200:
             ids = res.json()
             ids.sort()
-            return ", ".join(str(i) for i in ids[:10]) # Default to first 10
-    except requests.exceptions.RequestException:
-        pass
+            return ", ".join(str(i) for i in ids[:10])
+        else:
+            print(f"[ERROR] Failed to fetch merchants: Status {res.status_code}")
+    except Exception as e:
+        print(f"[CRITICAL] Merchant API Connection Error: {str(e)}")
     return "1, 2"
 
 if "context_merchant_ids" not in st.session_state:
@@ -279,18 +296,25 @@ if st.session_state.canvas_data is None:
             # Use role-appropriate language in the underlying prompt prompt
             example_text = "Your restaurant had a total of 20 orders today, generating a revenue of $400." if role == "merchant" else "The platform had a total of 20 orders today, generating a revenue of $400."
             
-            brief_res = requests.post(TEXT_TO_SQL_URL, json={
-                "role": role, 
-                "merchant_ids": merchant_ids, 
-                "question": f"Give me a one sentence text summary of today's total orders and total revenue. E.g: {example_text}", 
-                "chat_history": []
-            })
+            print(f"[LOG] Fetching Daily Briefing from: {TEXT_TO_SQL_URL}")
+            brief_res = requests.post(
+                TEXT_TO_SQL_URL, 
+                json={
+                    "role": role, 
+                    "merchant_ids": merchant_ids, 
+                    "question": f"Give me a one sentence text summary of today's total orders and total revenue. E.g: {example_text}", 
+                    "chat_history": []
+                },
+                timeout=REQUEST_TIMEOUT
+            )
             st.markdown("<div class='canvas-card' style='margin-top: 20px;'>", unsafe_allow_html=True)
             st.markdown("<div class='canvas-card-title'>📈 Daily Briefing</div>", unsafe_allow_html=True)
             if brief_res.status_code == 200:
+                print("[LOG] Daily Briefing loaded successfully.")
                 st.markdown(f"<p style='color: #444; font-size: 1rem; line-height: 1.5;'>{brief_res.json().get('summary', 'No activity today.')}</p>", unsafe_allow_html=True)
             else:
-                st.markdown("<p style='color: #444; font-size: 1rem;'>Unable to load briefing data.</p>", unsafe_allow_html=True)
+                print(f"[ERROR] Daily Briefing failed: Status {brief_res.status_code}")
+                st.markdown("<p style='color: #444; font-size: 1rem;'>Unable to load briefing data. (Backend offline or timeout)</p>", unsafe_allow_html=True)
             st.markdown("</div>", unsafe_allow_html=True)
     else:
         # We have messages but no visual data (e.g. general conversational response)
@@ -361,7 +385,16 @@ if chat_input:
     # Generate response
     with st.spinner("Analyzing your business context & gathering insights..."):
         try:
-            response = requests.post(TEXT_TO_SQL_URL, json=payload)
+            print(f"[LOG] Sending Query to: {TEXT_TO_SQL_URL}")
+            print(f"[LOG] Payload: {payload}")
+            
+            import time
+            start_t = time.time()
+            response = requests.post(TEXT_TO_SQL_URL, json=payload, timeout=REQUEST_TIMEOUT)
+            duration = time.time() - start_t
+            
+            print(f"[LOG] Backend Response Status: {response.status_code} in {duration:.2f}s")
+            
             if response.status_code == 200:
                 data = response.json()
                 
@@ -387,9 +420,15 @@ if chat_input:
                     "summary": summary_text,
                     "has_visual": has_visual
                 })
+            elif response.status_code == 502:
+                st.session_state.messages.append({"role": "assistant", "error": "AWS Gateway Timeout (502). The backend processing took too long or is scaling up."})
             else:
                 st.session_state.messages.append({"role": "assistant", "error": f"API Error {response.status_code}: {response.text}"})
+        except requests.exceptions.Timeout:
+            print("[ERROR] Request timed out after 120s")
+            st.session_state.messages.append({"role": "assistant", "error": "Request timed out. The query was too complex or the backend is busy."})
         except Exception as e:
+            print(f"[CRITICAL] UI Connection Error: {str(e)}")
             st.session_state.messages.append({"role": "assistant", "error": f"Failed to connect to backend: {str(e)}"})
     
     st.rerun()

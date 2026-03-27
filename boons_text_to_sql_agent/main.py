@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import logging
+import time
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 
 from boons_text_to_sql_agent.application import GenerateAndExecuteQueryService
 from boons_text_to_sql_agent.config import load_settings
@@ -62,13 +63,27 @@ def create_app() -> FastAPI:
 
     router = create_router(service)
     app.include_router(router)
+    app.include_router(marketing_router)
+
+    # Middleware for Production Observability
+    @app.middleware("http")
+    async def log_requests(request: Request, call_next):
+        start_time = time.time()
+        response = await call_next(request)
+        process_time = time.time() - start_time
+        logger.info(
+            f"Method: {request.method} Path: {request.url.path} "
+            f"Status: {response.status_code} Latency: {process_time:.2f}s"
+        )
+        return response
 
     @app.get("/health")
     async def health_check():
+        logger.info(f"Health check triggered in {settings.environment} environment")
         return {
             "status": "healthy",
             "environment": settings.environment,
-            "version": "1.0.0"
+            "version": "1.0.1"
         }
 
     return app
