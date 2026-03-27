@@ -16,6 +16,7 @@ from boons_text_to_sql_agent.infrastructure.llm.watcher_agent import LlmWatcherA
 from boons_text_to_sql_agent.infrastructure.schema.static_schema_provider import StaticSchemaProvider
 from boons_text_to_sql_agent.infrastructure.security.simple_sql_validator import SimpleSqlValidator
 from boons_text_to_sql_agent.interface.api.routes import create_router
+from boons_text_to_sql_agent.marketing_module.interface.api.marketing_routes import router as marketing_router
 
 # Configure global logging
 logging.basicConfig(
@@ -62,6 +63,7 @@ def create_app() -> FastAPI:
 
     router = create_router(service)
     app.include_router(router)
+    app.include_router(marketing_router)
 
     @app.get("/health")
     async def health_check():

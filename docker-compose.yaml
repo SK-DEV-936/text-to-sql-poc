@@ -1,0 +1,66 @@
+version: "3.9"
+
+services:
+  # ⚡ The FastAPI Backend (Simulating App Runner)
+  backend:
+    build: 
+      context: .
+      args:
+        - APP_ENV=local
+    container_name: boons-backend
+    environment:
+      - RUN_UI=false
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_USER=boons_admin
+      - DB_PASSWORD=adminpass
+      - DB_NAME=boons
+      - LLM_PROVIDER=google
+      - LLM_API_KEY=${LLM_API_KEY}
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    networks:
+      - boons-network
+
+  # 🚀 The Streamlit UI (Simulating EB / UI Service)
+  frontend:
+    build: 
+      context: .
+    container_name: boons-frontend
+    environment:
+      - RUN_UI=true
+      - PORT=8080
+      - API_BASE_URL=http://backend:8000
+    ports:
+      - "8080:8080"
+    depends_on:
+      - backend
+    networks:
+      - boons-network
+
+  # 🗄️ The Database (Existing logic)
+  db:
+    image: mysql:8.0
+    container_name: boons-db
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: boons
+      MYSQL_USER: boons_admin
+      MYSQL_PASSWORD: adminpass
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    command: ["--default-authentication-plugin=mysql_native_password"]
+    networks:
+      - boons-network
+
+networks:
+  boons-network:
+    driver: bridge
+
+volumes:
+  mysql_data:

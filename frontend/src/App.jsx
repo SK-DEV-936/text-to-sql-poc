@@ -5,6 +5,8 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
 import { Settings, Trash2, SendHorizonal, Database, Share, Sparkles, LayoutDashboard, Bot, User } from 'lucide-react'
+import { generateMarketingCampaign } from './features/marketing/api/marketingApi'
+import { CampaignProposalCard } from './features/marketing/components/CampaignProposalCard'
 
 // Typing Indicator Component
 const TypingIndicator = () => (
@@ -51,6 +53,7 @@ const formatCellValue = (key, val) => {
 
 function App() {
   const [messages, setMessages] = useState([])
+  const [marketingProposal, setMarketingProposal] = useState(null)
   
   const [role, setRole] = useState('internal')
   const [merchantIdsStr, setMerchantIdsStr] = useState('1, 2')
@@ -83,10 +86,25 @@ function App() {
   // Clear chat when context changes
   useEffect(() => {
     setMessages([])
+    setMarketingProposal(null)
   }, [role, merchantIdsStr])
 
   const parseMerchantIds = (str) => {
     return str.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n))
+  }
+
+  const handleGenerateCampaign = async () => {
+    setLoading(true)
+    setMessages([])
+    setMarketingProposal(null)
+    try {
+        const id = parseMerchantIds(merchantIdsStr)[0] || 1;
+        const proposal = await generateMarketingCampaign(id)
+        setMarketingProposal(proposal)
+    } catch (e) {
+        setMessages([{ role: 'assistant', error: "Failed to generate campaign: " + e.message }])
+    }
+    setLoading(false)
   }
 
   const sendMessage = async (textOverride = null) => {
@@ -176,7 +194,15 @@ function App() {
 
         <div className="p-4 border-t border-slate-100 bg-white">
           <button 
-            onClick={() => setMessages([])}
+            onClick={handleGenerateCampaign}
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg hover:shadow-md transition-all font-bold text-sm mb-3 opacity-90 hover:opacity-100"
+          >
+            <Sparkles size={16} />
+            Auto-Generate Campaign
+          </button>
+          <button 
+            onClick={() => { setMessages([]); setMarketingProposal(null); }}
             className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-white border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 hover:text-red-600 transition-colors shadow-sm font-medium text-sm"
           >
             <Trash2 size={16} />
@@ -230,12 +256,17 @@ function App() {
 
 
             {/* Empty State */}
-            {messages.length === 0 && !loading && (
+            {messages.length === 0 && !marketingProposal && !loading && (
               <div className="text-center py-20 text-slate-400">
                 <Database size={48} className="mx-auto mb-4 opacity-20" />
                 <h2 className="text-xl font-semibold text-slate-600 mb-2">Welcome to boons Lens</h2>
                 <p>Ask a question about your data to generate SQL, insights, and charts.</p>
               </div>
+            )}
+
+            {/* Marketing Proposal */}
+            {marketingProposal && (
+              <CampaignProposalCard proposal={marketingProposal} />
             )}
 
             {/* Chat Messages */}
